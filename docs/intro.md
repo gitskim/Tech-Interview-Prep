@@ -223,9 +223,9 @@ private void postOrder(Node root) {
     if (root == null) {
         return;
     }
-    Utils.print(root.data);
     postOrder(root.left);
     postOrder(root.right);
+    Utils.print(root.data);
 }
 
 ```
