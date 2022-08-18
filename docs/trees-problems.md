@@ -5,6 +5,8 @@ sidebar_position: 3
 # Tree Practice Problems
 **NOTE**: come up with solutions in at least 2 ways, if possible. . Ideally **recursively** and **iteratively**.
 
+***Solutions*** [python](https://github.com/gitskim/Tech-Interview-Prep/blob/main/docs/solutions/trees-problems-python.py)
+
 ## Tree Construction
 [Insert into a Binary Search Tree](https://leetcode.com/problems/insert-into-a-binary-search-tree/)
 [Delete Node in a BST](https://leetcode.com/problems/delete-node-in-a-bst/)
