@@ -1,7 +1,9 @@
 from calendar import firstweekday
 import collections
 from copy import copy
+from ctypes.wintypes import SMALL_RECT
 from email import charset
+from enum import unique
 from multiprocessing import allow_connection_pickling
 from pdb import pm
 from pickle import TRUE
@@ -308,3 +310,227 @@ class Solution:
                             words_remain.add(first_word)
 
         return all_starts
+
+    def lengthOfLongestSubstringTwoDistinct(self, s: str) -> int:
+        """
+        Find the length of the longest substring that contains at most two distinct characters in s.
+        Time: O(n)
+        Space: O(1)
+        """
+        if len(s) < 3:
+            return len(s)
+
+        longest_substr_length = 0
+        start = end = 0  # first and last index of current substr
+        char_count = {}  # occurances of each char in current substr
+
+        for end in range(len(s)):  # O(n)
+            # add in a new char from right
+            if s[end] not in char_count:
+                char_count[s[end]] = 1
+            else:
+                char_count[s[end]] += 1
+
+            # if we have >2 unique chars in substr, shrink from left
+            while start < len(s) - 1 and len(char_count) > 2:  # O(n) in total
+                char_count[s[start]] -= 1
+                if char_count[s[start]] == 0:
+                    char_count.pop(s[start])
+                start += 1
+
+            if len(char_count) < 3 and end - start + 1 > longest_substr_length:
+                longest_substr_length = end - start + 1
+
+        return longest_substr_length
+
+    def lengthOfLongestSubstringTwoDistinct(self, s: str) -> int:
+        """
+        (Similar algorithm from solution but left side shrinks faster)
+        Find the length of the longest substring that contains at most two distinct characters in s.
+        Time: O(n)
+        Space: O(1)
+        """
+        if len(s) < 3:
+            return len(s)
+
+        longest_substr_length = 0
+        start = end = 0  # first and last index of current substr
+        # rightmost index for each char in current substr, at most 3 keys
+        char_rightmost_idx = collections.defaultdict()
+
+        for end in range(len(s)):
+            char_rightmost_idx[s[end]] = end
+
+            # if we have >2 unique chars in substr, drop one unique char from left, will come to 2 again
+            if len(char_rightmost_idx) > 2:
+                del_idx = min(char_rightmost_idx.values())
+                char_rightmost_idx.pop(s[del_idx])
+                start = del_idx + 1
+
+            longest_substr_length = max(end - start + 1, longest_substr_length)
+
+        return longest_substr_length
+
+    def lengthOfLongestSubstringKDistinct(self, s: str, k: int) -> int:
+        """
+        Find the length of the longest substring that contains at most k distinct characters in s.
+        Time: O(n*k) - solution uses ordereddict to bring down to O(n)
+        Space: O(k)
+        """
+        if not k:
+            return 0
+        if len(s) < k + 1:
+            return len(s)
+
+        longest_substr_length = 0
+        start = 0
+        char_rightmost_idx = collections.defaultdict()
+
+        for end in range(len(s)):
+            # update char's rightmost idx
+            char_rightmost_idx[s[end]] = end
+            # if have >k unique chars, remove from left until one char removed from substr
+            if len(char_rightmost_idx) > k:
+                idx_del = min(char_rightmost_idx.values())  # O(k)
+                char_rightmost_idx.pop(s[idx_del])
+                start = idx_del + 1
+            longest_substr_length = max(longest_substr_length, end - start + 1)
+
+        return longest_substr_length
+
+    def lengthOfLongestSubstringKDistinct(self, s: str, k: int) -> int:
+        """
+        (Another algo similar to the original implementation for when k=2)
+        Find the length of the longest substring that contains at most k distinct characters in s.
+        Time: O(n)
+        Space: O(k)
+        """
+        if not k:
+            return 0
+        if len(s) < k + 1:
+            return len(s)
+
+        longest_substr_length = 0
+        start = 0
+        char_count = {}  # at most k+1 keys
+
+        for end in range(len(s)):  # O(n)
+            if s[end] not in char_count:
+                char_count[s[end]] = 1
+            else:
+                char_count[s[end]] += 1
+
+            while len(char_count) > k:  # O(n) in total
+                char_count[s[start]] -= 1
+                if char_count[s[start]] == 0:
+                    char_count.pop(s[start])
+                start += 1
+
+            longest_substr_length = max(longest_substr_length, end - start + 1)
+
+        return longest_substr_length
+
+    def subarraysWithKDistinct(self, nums: List[int], k: int) -> int:
+        """
+        (From an idea from discussion session)
+        An int array nums and an int k, return the number of good subarrays of nums.
+        A good array is an array where the number of different integers in that array is exactly k.
+        e.x. nums = [1,2,1,3,4], k = 3 -> return 3 ([1,2,1,3], [2,1,3], [1,3,4])
+        Time: O(n)
+        Space: O(k)
+        """
+        if k == 0 or len(nums) < k:
+            return 0
+
+        # number of subarrays with at most k different integers
+        #     - number of subarrays with at most k-1 different integers
+        #     = number of subarrays with exactly k different integers
+        return self.subarraysWithAtMostKDistinct(nums, k) - self.subarraysWithAtMostKDistinct(nums, k-1)
+
+    def subarraysWithAtMostKDistinct(self, nums: List[int], k: int) -> int:
+        """
+        Helper function to count number of subarrays in array nums that contains <=k different integers.
+        Time: O(n)
+        Space: O(k)
+        """
+        if k == 0 or not nums:
+            return 0
+
+        valid_subs = 0  # num of valid subarrays
+        start = 0  # start of current subarray
+        num_count = {}  # occurances of each number in current subarray
+
+        for end in range(len(nums)):  # O(n)
+            if nums[end] not in num_count:
+                num_count[nums[end]] = 1
+            else:
+                num_count[nums[end]] += 1
+
+            # shrink from left till at most k different numbers in array
+            while len(num_count) > k:  # O(n) in total
+                num_count[nums[start]] -= 1
+                if num_count[nums[start]] == 0:
+                    num_count.pop(nums[start])
+                start += 1
+
+            # at this point, nums[start: end+1] has exactly k different integers
+            # e.x. nums[start: end+1] is like [x_s, x_s+1, ..., x_e]
+            #   -> then all subarrays of this array has <= k different integers
+            #   -> [x_s, x_s+1, ..., x_e-1]'s subarrays has been counted when end <= e-1
+            #   -> just need to add: (e - s + 1) new subarrays
+            #      [x_s, x_s+1, ..., x_e], [x_s+1, ..., x_e], [x_s+2, ..., x_e], ..., [x_e-1, x_e], [x_e]
+            valid_subs += end - start + 1
+
+        return valid_subs
+
+    def subarraysWithKDistinct(self, nums: List[int], k: int) -> int:
+        """
+        (Algorithm from solution)
+        An int array nums and an int k, return the number of good subarrays of nums.
+        A good array is an array where the number of different integers in that array is exactly k.
+        e.x. nums = [1,2,1,3,4], k = 3 -> return 3 ([1,2,1,3], [2,1,3], [1,3,4])
+        Time: O(n)
+        Space: O(k)
+        """
+        if not k or len(nums) < k:
+            return 0
+
+        valid_subs = 0  # num of valid subarrays
+        start_greater_k = start_ge_k = 0  # start index of subarrays
+        num_count_greater = {}  # occurances of each number in current subarray that diff nums > k
+        num_count_ge = {}  # occurances of each number in current subarray that diff nums >= k
+
+        for end in range(len(nums)):  # O(n)
+            # add in a new number from right for both num_counts
+            if nums[end] not in num_count_greater:
+                num_count_greater[nums[end]] = 1
+            else:
+                num_count_greater[nums[end]] += 1
+            if nums[end] not in num_count_ge:
+                num_count_ge[nums[end]] = 1
+            else:
+                num_count_ge[nums[end]] += 1
+
+            # if we have >k unique numbers in subarray, shrink from left
+            # by the end start_greater_k will be at the first index where nums[start: end+1] has k diff nums
+            # all nums[start < start_greater_k : end+1] will have >k diff nums
+            while len(num_count_greater) > k:
+                num_count_greater[nums[start_greater_k]] -= 1
+                if num_count_greater[nums[start_greater_k]] == 0:
+                    num_count_greater.pop(nums[start_greater_k])
+                start_greater_k += 1
+
+            # if we have >=k unique numbers in subarray, shrink from left
+            # by the end start_ge_k will be at the first index where nums[start: end+1] has <k diff nums
+            # all nums[start < start_ge_k : end+1] will have >=k diff nums
+            while len(num_count_ge) >= k:
+                num_count_ge[nums[start_ge_k]] -= 1
+                if num_count_ge[nums[start_ge_k]] == 0:
+                    num_count_ge.pop(nums[start_ge_k])
+                start_ge_k += 1
+
+            # the only possible cases where diff nums == k for this end are:
+            #   nums[start_greater_k: end+1], nums[start_greater_k+1: end+1], ..., nums[start_ge_k-1: end+1]
+            valid_subs += start_ge_k - start_greater_k
+
+        return valid_subs
