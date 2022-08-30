@@ -1,6 +1,13 @@
+from array import array
+import collections
+from ctypes.wintypes import PINT, PSMALL_RECT
+from ipaddress import collapse_addresses
+import math
+from os import statvfs_result
+from pyclbr import Function
 import random
 from re import T
-from typing import List
+from typing import Callable, List, Tuple
 
 
 class Solution:
@@ -163,3 +170,468 @@ class Solution:
 
         swap(nums, low, start - 1)
         return start - 1
+
+    def kClosest(self, points: List[List[int]], k: int) -> List[List[int]]:
+        """
+        Array of points [xi, yi] and an integer k, return the k closest points to the origin (0, 0).
+
+        Time: O(N)
+        Space: O(1)
+        """
+        # quick-select first
+        random.shuffle(points)
+
+        start = 0
+        end = len(points) - 1
+
+        while start < end + 1:
+            partition_index = self.partitionPoints(points, start, end)
+            if points[partition_index] == points[k-1]:
+                return points[:k]
+            elif partition_index > k - 1:
+                end = partition_index - 1
+            else:
+                start = partition_index + 1
+
+    def partitionPoints(self, points: List[List[int]], low: int, high: int) -> int:
+        """
+        Helper function to partition the points in place (2-way) according to distance to origin. 
+        Partition value is points[low]'s distance to origin.
+
+        Args:
+            points (List[List[int]]): list to partition, will be changed in-place
+            low (int): start index of the subarray to partition
+            high (int): end index of the subarray to partition
+
+        Returns:
+            int: the partition point index where points[low: p] closer to origin than -> 
+                 points[p] closer or same to origin than -> points[p: high+1]
+
+        Time: O(N)
+        Space: O(1)
+        """
+        start = low + 1
+        end = high
+        partition_dist = math.pow(
+            points[low][0], 2) + math.pow(points[low][1], 2)
+
+        while start < end + 1:
+            if math.pow(points[start][0], 2) + math.pow(points[start][1], 2) < partition_dist:
+                start += 1
+                continue
+            if math.pow(points[end][0], 2) + math.pow(points[end][1], 2) >= partition_dist:
+                end -= 1
+                continue
+
+            points[start], points[end] = points[end], points[start]
+
+        points[low], points[start-1] = points[start-1], points[low]
+        return start-1
+
+    def kClosest(self, points: List[List[int]], k: int) -> List[List[int]]:
+        """
+        Array of points [xi, yi] and an integer k, return the k closest points to the origin (0, 0).
+        Use partition 3-way.
+
+        Time: O(N)
+        Space: O(1)
+        """
+        random.shuffle(points)
+        start = 0
+        end = len(points) - 1
+
+        while start < end + 1:
+            p_smaller, p_greater = self.partitionPointsThreeWays(
+                points, start, end)
+            if p_smaller <= k - 1 < p_greater:
+                return points[:k]
+            if k - 1 < p_smaller:
+                end = p_smaller - 1
+            else:
+                start = p_greater
+
+    def partitionPointsThreeWays(self, points: List[List[int]], low: int, high: int) -> List[int]:
+        """
+        Helper function to partition the points in place (3-way) according to distance to origin. 
+        Partition value is points[low]'s distance to origin.
+
+        Args:
+            points (List[List[int]]): list to partition, will be changed in-place
+            low (int): start index of the subarray to partition
+            high (int): end index of the subarray to partition
+
+        Returns:
+            List[int]: the partition points indices where points[low: p1] closer to origin than -> 
+                       points[p1: p2] closer to origin than -> points[p2: high+1]
+
+        Time: O(N)
+        Space: O(1)
+        """
+        p_smaller = p_smaller_equal = low + 1
+        p_greater = high
+        p_dist = math.pow(points[low][0], 2) + math.pow(points[low][1], 2)
+
+        while p_smaller_equal < p_greater + 1:
+            # move p_smaller_equal and compare with p_dist
+            cur_dist = math.pow(
+                points[p_smaller_equal][0], 2) + math.pow(points[p_smaller_equal][1], 2)
+
+            if cur_dist < p_dist:
+                # if < p_dist, swap with p_smaller and move both p_smaller/p_smaller_equal forward
+                # points[low+1: p_smaller] < p_dist, points[p_smaller: p_smaller_equal] == p_dist
+                points[p_smaller], points[p_smaller_equal] = points[p_smaller_equal], points[p_smaller]
+                p_smaller += 1
+                p_smaller_equal += 1
+            elif cur_dist == p_dist:
+                # if == p_dist, move p_smaller_equal forward, points[p_smaller: p_smaller_equal] == p_dist
+                p_smaller_equal += 1
+            else:
+                # if > p_dist, swap with p_greater and move p_greater backward
+                # points[p_greater+1:] > p_dist, value of points[p_smaller_equal] after swap unknown
+                points[p_smaller_equal], points[p_greater] = points[p_greater], points[p_smaller_equal]
+                p_greater -= 1
+
+        points[low], points[p_smaller-1] = points[p_smaller-1], points[low]
+        return [p_smaller-1, p_smaller_equal]
+
+    def topKFrequent(self, words: List[str], k: int) -> List[str]:
+        """
+        Given an array of strings words and an integer k, return the k most frequent strings.
+
+        Returns:
+            List[str]: k most frequent strings sorted by the frequency from highest to lowest. 
+                       Sort the words with the same frequency by their lexicographical order.
+
+        Time: O(KlogK + N)
+        Space: O(logK)
+        """
+        word_map = collections.Counter(words)
+        word_freq = [(word, freq) for word, freq in word_map.items()]
+
+        if k >= len(word_map):
+            self.sortWords(word_freq, 0, len(word_freq)-1)
+            return [wf[0] for wf in word_freq]
+
+        start = 0
+        end = len(word_freq) - 1
+        while start < end + 1:
+            p_index = self.partitionWords(word_freq, start, end)
+            if p_index == k-1:
+                self.sortWords(word_freq, 0, k-1)
+                return [wf[0] for wf in word_freq[:k]]
+            if p_index < k - 1:
+                start = p_index + 1
+            else:
+                end = p_index - 1
+
+    def compare(self, str_freq_1: Tuple[str, int], str_freq_2: Tuple[str, int]) -> int:
+        """
+        Compare function of (string, frequence) tuples. Won't have duplicate values.
+        Return: -1 if str_freq_1 should be before str_freq_2
+                 1 otherwise
+        """
+        # more frequent word should be before less frequent
+        if str_freq_1[1] < str_freq_2[1]:
+            return 1
+        if str_freq_1[1] > str_freq_2[1]:
+            return -1
+        # if same frequent, smaller lexi order word should be before
+        if str_freq_1[0] < str_freq_2[0]:
+            return -1
+        return 1  # impossible to be equal
+
+    def sortWords(self, words: List[Tuple[str, int]], low: int, high: int):
+        """
+        Sort words and update array in place using quicksort. Sort by frequence and lexi order.
+
+        Args:
+            words (List[Tuple[str, int]]): list of (string, frequence) that containing the part to sort
+            low (int): start index of subarray to sort
+            high (int): end index of subarray to sort
+
+        Time: O(NlogN)
+        Space: O(logN)
+        """
+
+        # use insertion sort if array is short
+        if high - low + 1 < 5:
+            for i in range(low, high):
+                for j in range(i+1, high+1):
+                    if self.compare(words[i], words[j]) == 1:
+                        words[i], words[j] = words[j], words[i]
+            return
+
+        # quicksort
+        p_index = self.partitionWords(words, low, high)
+        if p_index < 2:
+            self.sortWords(words, p_index+1, high)
+        else:
+            self.sortWords(words, low, p_index-1)
+            self.sortWords(words, p_index+1, high)
+
+    def partitionWords(self, words: List[Tuple[str, int]], low: int, high: int) -> int:
+        """
+        Helper function to partition the words in place (2-way) according to frequency and lexi order. 
+        Partition value is words[low]. In this case there won't be dup values so no need to do 3-way.
+
+        Args:
+            words (List[Tuple[str, int]]): list to partition, will be changed in-place
+            low (int): start index of the subarray to partition
+            high (int): end index of the subarray to partition
+
+        Returns:
+            List[int]: partition point index where words[low: p] frequency/lexi order < words[p: high+1]
+
+        Time: O(N)
+        Space: O(1)
+        """
+        start = low + 1
+        end = high
+        p_val = words[low]
+
+        while start < end + 1:
+            if self.compare(words[start], p_val) == -1:
+                start += 1
+                continue
+            if self.compare(words[end], p_val) == 1:
+                end -= 1
+                continue
+            words[start], words[end] = words[end], words[start]
+
+        words[start-1], words[low] = words[low], words[start-1]
+        return start-1
+
+    def quickSort(self, array_obj: List[object], low: int, high: int, compare_func: Callable):
+        """
+        General quicksort function to help with later solutions. Sort in place.
+
+        Args:
+            array_obj (List[object]): array that contains the part to sort
+            low (int): start index of subarray to sort
+            high (int): end index of subarray to sort
+            compare_func (Callable): compare function to use, -1/0/1 as </==/>
+
+        Time: O(NlogN)
+        Space: O(logN)
+        """
+        # insertion sort if length is < 5
+        if high - low + 1 < 5:
+            for i in range(low, high):
+                for j in range(i+1, high+1):
+                    if compare_func(array_obj[i], array_obj[j]) > 0:
+                        array_obj[i], array_obj[j] = array_obj[j], array_obj[i]
+            return
+
+        # quicksort
+        partition_index = self.partitionObj(array_obj, low, high, compare_func)
+        if partition_index < 2:
+            self.quickSort(array_obj, partition_index+1, high, compare_func)
+        else:
+            self.quickSort(array_obj, low, partition_index-1, compare_func)
+            self.quickSort(array_obj, partition_index+1, high, compare_func)
+
+    def partitionObj(self, array_obj: List[object], low: int, high: int, compare_func: Callable) -> int:
+        """
+        General partion function (2-way) to help with later solutions. Partition in place.
+
+        Args:
+            array_obj (List[object]): array that contains the part to partition
+            low (int): start index of subarray to partition
+            high (int): end index of subarray to partition
+            compare_func (Callable): compare function to use, -1/0/1 as </==/>
+
+        Returns:
+            int: partition point index where array_obj[low: p] < array_obj[p] <= array_obj[p+1:high+1]
+
+        Time: O(N)
+        Space: O(1)
+        """
+        start = low + 1
+        end = high
+        p_val = array_obj[low]
+
+        while start < end + 1:
+            if compare_func(array_obj[start], p_val) < 0:
+                start += 1
+                continue
+            if compare_func(array_obj[end], p_val) >= 0:
+                end -= 1
+                continue
+            array_obj[start], array_obj[end] = array_obj[end], array_obj[start]
+
+        array_obj[low], array_obj[start-1] = array_obj[start-1], array_obj[low]
+        return start-1
+
+    def compareIntervals(self, interval_1: List[int], interval_2: List[int]) -> int:
+        if interval_1[0] < interval_2[0]:
+            return -1
+        if interval_1[0] == interval_2[0]:
+            return 0
+        return 1
+
+    def merge(self, intervals: List[List[int]]) -> List[List[int]]:
+        """
+        Merge all overlapping intervals.
+
+        Args:
+            intervals (List[List[int]]): array of intervals where intervals[i] = [starti, endi]
+
+        Returns:
+            List[List[int]]: array of non-overlapping intervals that cover all the intervals in the input
+
+        Time: O(NlogN)
+        Space: O(logN)
+        """
+        # sort on start
+        random.shuffle(intervals)
+        self.quickSort(intervals, 0, len(intervals)-1, self.compareIntervals)
+
+        # check end and if can merge
+        i = 1
+        while i < len(intervals):
+            # [start_i-1, end_i-1], [start_i, end_i]: start_i <= end_i-1
+            if intervals[i][0] <= intervals[i-1][1]:
+                intervals[i-1][1] = max(intervals[i-1][1], intervals[i][1])
+                intervals.pop(i)
+            else:
+                i += 1
+
+        return intervals
+
+    def insert(self, intervals: List[List[int]], newInterval: List[int]) -> List[List[int]]:
+        """
+        Given an array of non-overlapping intervals sorted in ascending order by starti and a new interval.
+        Insert newInterval into intervals, still sorted in ascending order by starti and still non-overlapping.
+
+        Args:
+            intervals (List[List[int]]): intervals[i] = [starti, endi] sorted by starti
+            newInterval (List[int]): [start, end] that represents the start and end of another interval
+
+        Returns:
+            List[List[int]]: new intervals with inserted interval and merged if necessary
+
+        Time: O(N)
+        Space: O(1) - not counting the returning list
+        """
+        new_intervals = []
+        inserted = False
+
+        def insertNewInterval(new_itv: List[int]):
+            # [start_-1, end_-1], [start_ni, end_ni]: start_ni <= end_-1 ?
+            if not new_intervals or new_itv[0] > new_intervals[-1][1]:
+                new_intervals.append(new_itv)
+            elif new_itv[1] > new_intervals[-1][1]:
+                new_intervals[-1][1] = new_itv[1]
+
+        for itv in intervals:
+            # find appropriate place to insert newInterval and merge potentially
+            if not inserted and newInterval[0] <= itv[0]:
+                insertNewInterval(newInterval)
+                inserted = True
+
+            # insert itv and check if needs to merge
+            insertNewInterval(itv)
+
+        if not inserted:
+            insertNewInterval(newInterval)
+
+        return new_intervals
+
+    def canAttendMeetings(self, intervals: List[List[int]]) -> bool:
+        """
+        Given an array of meeting time intervals, determine if a person could attend all meetings.
+
+        Args:
+            intervals (List[List[int]]): meeting intervals where intervals[i] = [starti, endi]
+
+        Returns:
+            bool: whether can attend all meetings
+
+        Time: O(NlogN)
+        Space: O(logN)
+        """
+        # sort on start
+        random.shuffle(intervals)
+        self.quickSort(intervals, 0, len(intervals)-1, self.compareIntervals)
+
+        # check if there is any overlap
+        for i in range(1, len(intervals)):
+            if intervals[i][0] < intervals[i-1][1]:
+                return False
+
+        return True
+
+    def minMeetingRooms(self, intervals: List[List[int]]) -> int:
+        """
+        Given an array of meeting time intervals, return the minimum number of conference rooms required.
+
+        Args:
+            intervals (List[List[int]]): intervals where intervals[i] = [starti, endi]
+
+        Returns:
+            int: minimum number of conference rooms required
+
+        Time: O(NlogN + num of rooms needed ^2) - worst O(N^2) 
+        Space: O(N)
+        """
+        if len(intervals) < 2:
+            return len(intervals)
+
+        # sort on start
+        random.shuffle(intervals)
+        self.quickSort(intervals, 0, len(intervals)-1, self.compareIntervals)
+
+        # check overlap against each meeting room
+        room_itv = []
+        for itv in intervals:
+            if not room_itv:
+                room_itv.append([itv])
+                continue
+
+            can_fit_in = False
+            for room in room_itv:
+                if room[-1][1] <= itv[0]:
+                    can_fit_in = True
+                    room.append(itv)
+                    break
+            if not can_fit_in:
+                room_itv.append([itv])
+
+        return len(room_itv)
+
+    def minMeetingRooms(self, intervals: List[List[int]]) -> int:
+        """
+        (Another good algorithm from solution)
+        Given an array of meeting time intervals, return the minimum number of conference rooms required.
+
+        Args:
+            intervals (List[List[int]]): intervals where intervals[i] = [starti, endi]
+
+        Returns:
+            int: minimum number of conference rooms required
+
+        Time: O(NlogN)
+        Space: O(N)
+        """
+        # [[0,30],[5,10],[15,20],[10,15]]
+        start_times = sorted([itv[0] for itv in intervals])  # 0, 5, 10, 15
+        end_times = sorted([itv[1] for itv in intervals])  # 10, 15, 20, 30
+        num_room_in_use = 0
+        num_room_needed = 0
+
+        s = e = 0
+        while s < len(start_times):
+            # no meeting has ended, have to occupy a new room
+            if start_times[s] < end_times[e]:
+                num_room_in_use += 1
+                num_room_needed = max(num_room_needed, num_room_in_use)
+                s += 1
+            if s == len(start_times):
+                break
+
+            # some meetings will end before next meeting starts, wait for them to end
+            if end_times[e] <= start_times[s]:
+                num_room_in_use -= 1
+                e += 1
+
+        return num_room_needed
