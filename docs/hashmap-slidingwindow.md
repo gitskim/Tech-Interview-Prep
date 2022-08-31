@@ -202,8 +202,51 @@ public int lengthOfLongestSubstringKDistinct(String s, int k) {
 }
 ```
 
-* https://leetcode.com/problems/substring-with-concatenation-of-all-words/description/
+## Subarrays with K different Integers
 * https://leetcode.com/problems/subarrays-with-k-different-integers/
+
+The important part about this algorithm is that the cardinality of exactly K is equal to [the cardinality of at most K] - [the cardinality of at most K - 1].
+
+Another thing about the solution is that the subarray count is same as the length of the array. 
+
+Suppose with an initial window [a], subarrays that ends with this element are [a]--> 1
+Then the window is exapnaded to [a,b]. The subarrays that ends with this new element are [b], [a,b] -->2
+Now the window expanded to [a,b,c]. Subarrays that ends with this new element are [c], [b, c], [a,b,c] -->3
+
+For this reason in my solution, I do subarray count += window length.
+
+Time complexity: O(N = nums.length)
+Space complexity: O(k)
+```java
+public int subarraysWithKDistinct(int[] nums, int k) {   
+    return atMostK(nums, k) - atMostK(nums, k-1);
+}
+
+public int atMostK(int[] nums, int k) {
+    int left = 0, count = 0;
+    Map<Integer, Integer> map = new HashMap<>();
+    for (int right = 0; right < nums.length; right++) {
+        int rnum = nums[right]; //1
+        map.put(rnum, map.getOrDefault(rnum, 0) + 1);
+        while (map.size() > k && left < nums.length) {
+            int lnum = nums[left];
+            map.put(lnum, map.get(lnum) - 1);
+            if (map.get(lnum) == 0) {
+                map.remove(lnum);
+            }
+            left++;
+        }
+
+        count += right - left + 1; // 1
+
+    }
+    return count;
+}
+```
+
+
+* https://leetcode.com/problems/substring-with-concatenation-of-all-words/description/
+
 
 
 
