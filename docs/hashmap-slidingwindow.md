@@ -244,10 +244,51 @@ public int atMostK(int[] nums, int k) {
 }
 ```
 
-
+## Concatenation
 * https://leetcode.com/problems/substring-with-concatenation-of-all-words/description/
 
-
-
+* Time complexity: O(N * a * b) where N is the length of string s and a is the length of words and b is the length of each word. 
+* Space complexity: O(a + b)
+* Question: In the second for loop, why does `left + bigwindow` faster than `slength - smwindow`?
+* For space complexity, would O(a * b) make sense? O(a * b) would be the character size of the words and technically that many characters will be stored. 
+```java
+public List<Integer> findSubstring(String s, String[] words) {
+    int smwindow = words[0].length();
+    int bigwindow = words.length * smwindow;
+    
+    List<Integer> answer = new ArrayList<>();
+    if (s.length() < bigwindow) {
+        return answer;
+    }
+    Map<String, Integer> wordmap = new HashMap<>();
+    for (int i = 0; i < words.length; i++) {
+        wordmap.put(words[i], wordmap.getOrDefault(words[i], 0) + 1);
+    }
+    
+    int slength = s.length();
+    for (int left = 0; left <= slength - bigwindow; left++) {
+        Map<String, Integer> interm = new HashMap<>();
+        
+        // the following for exceeds time limit. 
+        for (int right = left; right <= slength - smwindow; right += smwindow) {
+        // in order to pass, this for loop works: 
+        // for (int right = left; right < left + bigwindow; right += smwindow)
+            //System.out.println(left + ", " + right);
+            String substring = s.substring(right, right + smwindow);
+            
+            if (wordmap.containsKey(substring)) {
+                interm.put(substring, interm.getOrDefault(substring, 0) + 1);
+                if (interm.equals(wordmap)) {
+                    answer.add(left);
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+    } 
+    return answer;
+}
+```
 
 
