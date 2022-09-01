@@ -635,3 +635,294 @@ class Solution:
                 e += 1
 
         return num_room_needed
+
+
+class MyCalendar:
+    """
+    A calendar object that can add a new event if adding the event will not cause a double booking.
+
+    Time: O(NlogN) - for booking N events
+    Space: O(N)
+    """
+
+    def __init__(self):
+        self.bookings = []
+
+    def book(self, start: int, end: int) -> bool:
+        """
+        Time: O(logN)
+        Space: O(1)
+        """
+        # if no bookings, can definitely book
+        if not self.bookings:
+            self.bookings.append([start, end])
+            return True
+
+        # if start and end before first booking's start, can book
+        if start <= self.bookings[0][0]:
+            if end <= self.bookings[0][0]:
+                self.bookings.insert(0, [start, end])
+                return True
+            return False
+
+        # if start and end later than last booking's end, can book
+        if end >= self.bookings[-1][1]:
+            if start >= self.bookings[-1][1]:
+                self.bookings.append([start, end])
+                return True
+            return False
+
+        # if currently only 1 booking and not before or after it, cannot book
+        if len(self.bookings) == 1:
+            return False
+
+        # find a point where start_i-1 <= start <= start_i, if cannot find, cannot insert
+        # (have checked head and tail insert already above)
+        left = 0
+        right = len(self.bookings) - 1
+        cur_index = 0
+        while left < right + 1:
+            cur_index = math.floor((left + right) / 2)
+            if cur_index == 0:
+                left = cur_index + 1
+                continue
+            prev_start = self.bookings[cur_index-1][0]
+            cur_start = self.bookings[cur_index][0]
+            if prev_start <= start <= cur_start:
+                break
+            if start < prev_start:
+                right = cur_index - 1
+                continue
+            left = cur_index + 1
+
+        if right < left:
+            return False
+
+        # check if can insert at this index
+        if start >= self.bookings[cur_index-1][1] and end <= self.bookings[cur_index][0]:
+            self.bookings.insert(cur_index, [start, end])
+            return True
+        return False
+
+
+class MyCalendarTwo:
+    """
+    A calendar object that can add a new event if adding the event will not cause a triple booking.
+
+    Time: O(NlogN) - for booking N events
+    Space: O(N)
+    """
+
+    def __init__(self):
+        self.bookings = []
+
+    def book(self, start: int, end: int) -> bool:
+        """
+        Time: O(logN) - worst O(N)
+        Space: O(1)
+        """
+        # not overlapping with current bookings at all
+        if not self.bookings or start >= self.bookings[-1][0][1]:
+            self.bookings.append([[start, end], 1])
+            return True
+
+        # find the insert index, e_i-1 <= s < e_i
+        left = 0
+        right = len(self.bookings) - 1
+        insert_index = 0
+        while left < right + 1:
+            insert_index = math.floor((left + right) / 2)
+
+            if insert_index == 0:
+                # start < end_0
+                if start < self.bookings[insert_index][0][1]:
+                    break
+                left = insert_index + 1
+                continue
+
+            # e_i-1 <= s < e_i
+            if self.bookings[insert_index-1][0][1] <= start < self.bookings[insert_index][0][1]:
+                break
+            # s >= e_i
+            if start >= self.bookings[insert_index][0][1]:
+                left = insert_index + 1
+                continue
+            # s < e_i-1
+            if start < self.bookings[insert_index-1][0][1]:
+                right = insert_index - 1
+                continue
+
+        # check if can insert
+        cur_index = insert_index
+        while cur_index < len(self.bookings) and self.bookings[cur_index][0][0] < end:
+            if self.bookings[cur_index][1] == 2:
+                return False
+            cur_index += 1
+
+        # insert at insert_index
+        self.insertAt(insert_index, start, end)
+        return True
+
+    def insertAt(self, index: int, start: int, end: int):
+        """
+        Helper function to insert an interval [start, end] at index, already checked can insert.
+
+        Time: O(N) in worst case but it can only happen one time
+        Space: O(1)
+        """
+        if start > end - 1:
+            return
+
+        if index == len(self.bookings):
+            self.bookings.append([[start, end], 1])
+            return
+
+        cur_start, cur_end = self.bookings[index][0]
+
+        # can insert before or merge with current interval
+        if end < cur_start or end == cur_start and self.bookings[index][1] == 2:
+            self.bookings.insert(index, [[start, end], 1])
+            return
+        if end == cur_start:
+            self.bookings[index][0][0] = start
+            return
+
+        # handle start cases where start != cur_start
+        if cur_start < start:
+            self.bookings[index][0][0] = start
+            self.bookings.insert(index, [[cur_start, start], 1])
+            self.insertAt(index + 1, start, end)
+            return
+        if cur_start > start:
+            self.bookings.insert(index, [[start, cur_start], 1])
+            self.insertAt(index + 1, cur_start, end)
+            return
+
+        # handle end cases where end != cur_end
+        if cur_end > end:
+            self.bookings[index][0][0] = end
+            self.bookings.insert(index, [[start, end], 2])
+            return
+        if cur_end < end:
+            self.bookings[index][1] = 2
+            self.insertAt(index + 1, cur_end, end)
+            return
+
+        # start == cur_start, end == cur_end
+        self.bookings[index][1] = 2
+
+
+class MyCalendarThree:
+    """
+    A calendar object that can add a new event and return the maximum k-booking between previous events.
+
+    Time: O(NlogN) - worst O(N^2) - for booking N events
+    Space: O(N)
+    """
+
+    def __init__(self):
+        self.bookings = []
+        self.max_overbook = 0
+
+    def book(self, start: int, end: int) -> int:
+        """
+        Time: O(logN) - worst O(N)
+        Space: O(1)
+        """
+        # not overlapping with current bookings at all
+        if not self.bookings:
+            self.bookings.append([[start, end], 1])
+            self.max_overbook = 1
+            return 1
+        if start > self.bookings[-1][0][1]:
+            self.bookings.append([[start, end], 1])
+            return self.max_overbook
+        if start == self.bookings[-1][0][1]:
+            if self.bookings[-1][1] == 1:
+                self.bookings[-1][0][1] = end
+            else:
+                self.bookings.append([[start, end], 1])
+            return self.max_overbook
+
+        # find the insert index, e_i-1 <= s < e_i
+        left = 0
+        right = len(self.bookings) - 1
+        insert_index = 0
+        while left < right + 1:
+            insert_index = math.floor((left + right) / 2)
+
+            if insert_index == 0:
+                # start < end_0
+                if start < self.bookings[insert_index][0][1]:
+                    break
+                left = insert_index + 1
+                continue
+
+            # e_i-1 <= s < e_i
+            if self.bookings[insert_index-1][0][1] <= start < self.bookings[insert_index][0][1]:
+                break
+            # s >= e_i
+            if start >= self.bookings[insert_index][0][1]:
+                left = insert_index + 1
+                continue
+            # s < e_i-1
+            if start < self.bookings[insert_index-1][0][1]:
+                right = insert_index - 1
+                continue
+
+        # insert at insert_index and update max_overbook
+        self.insertAt(insert_index, start, end)
+        return self.max_overbook
+
+    def insertAt(self, index: int, start: int, end: int):
+        """
+        Helper function to insert an interval [start, end] at index, and update max_overbook.
+
+        Time: O(N) in worst case
+        Space: O(1)
+        """
+        if start > end - 1:
+            return
+
+        if index == len(self.bookings):
+            self.bookings.append([[start, end], 1])
+            return
+
+        cur_start, cur_end = self.bookings[index][0]
+
+        # can insert before or merge with current interval
+        if end < cur_start or end == cur_start and self.bookings[index][1] > 1:
+            self.bookings.insert(index, [[start, end], 1])
+            return
+        if end == cur_start:
+            self.bookings[index][0][0] = start
+            return
+
+        # handle start cases where start != cur_start
+        if cur_start < start:
+            self.bookings[index][0][0] = start
+            self.bookings.insert(
+                index, [[cur_start, start], self.bookings[index][1]])
+            self.insertAt(index + 1, start, end)
+            return
+        if cur_start > start:
+            self.bookings.insert(index, [[start, cur_start], 1])
+            self.insertAt(index + 1, cur_start, end)
+            return
+
+        # handle end cases where end != cur_end
+        if cur_end > end:
+            self.bookings[index][0][0] = end
+            self.bookings.insert(
+                index, [[start, end], self.bookings[index][1] + 1])
+            self.max_overbook = max(self.max_overbook, self.bookings[index][1])
+            return
+        if cur_end < end:
+            self.bookings[index][1] += 1
+            self.max_overbook = max(self.max_overbook, self.bookings[index][1])
+            self.insertAt(index + 1, cur_end, end)
+            return
+
+        # start == cur_start, end == cur_end
+        self.bookings[index][1] += 1
+        self.max_overbook = max(self.max_overbook, self.bookings[index][1])
