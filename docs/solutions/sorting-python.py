@@ -1,12 +1,6 @@
-from array import array
 import collections
-from ctypes.wintypes import PINT, PSMALL_RECT
-from ipaddress import collapse_addresses
 import math
-from os import statvfs_result
-from pyclbr import Function
 import random
-from re import T
 from typing import Callable, List, Tuple
 
 
@@ -879,7 +873,7 @@ class MyCalendarThree:
         Helper function to insert an interval [start, end] at index, and update max_overbook.
 
         Time: O(N) in worst case
-        Space: O(1)
+        Space: O(N) in worst case
         """
         if start > end - 1:
             return
@@ -926,3 +920,295 @@ class MyCalendarThree:
         # start == cur_start, end == cur_end
         self.bookings[index][1] += 1
         self.max_overbook = max(self.max_overbook, self.bookings[index][1])
+
+
+class Solution:
+
+    def carPooling(self, trips: List[List[int]], capacity: int) -> bool:
+        """
+        A car with capacity empty seats.
+        An array trips where trips[i] = [numPassengersi, fromi, toi] indicates that 
+        the ith trip has numPassengersi passengers and the locations are fromi and toi respectively.
+
+        Check if it is possible to pick up and drop off all passengers for all the given trips.
+        e.x. trips = [[2,1,5],[3,3,7]], capacity = 4 -> false
+
+        Time: O(NlogN) - worst O(N^2)
+        Space: O(N)
+        """
+        pass_ints = []  # keep track of number of passengers on the car at each interval
+
+        for trip in trips:
+            num_passengers, start, end = trip
+            if num_passengers > capacity:
+                return False
+
+            if not pass_ints:
+                self.insertAt(pass_ints, trip, 0)
+                continue
+
+            # binary search to insert trip into valid trips potentially
+            # find index such that end_i-1 <= start < end_i
+            left_idx = 0
+            right_idx = len(pass_ints) - 1
+            insert_idx = 0
+            while left_idx < right_idx + 1:
+                insert_idx = math.floor((left_idx + right_idx) / 2)
+                cur_end = pass_ints[insert_idx][2]
+                if start < cur_end and insert_idx == 0:
+                    break
+                prev_end = pass_ints[insert_idx - 1][2]
+                if prev_end <= start < cur_end:
+                    break
+                if cur_end <= start:
+                    left_idx = insert_idx + 1
+                    continue
+                # prev_end > start
+                right_idx = insert_idx - 1
+            if left_idx > right_idx:
+                insert_idx = left_idx
+
+            # check if overlap with next intervals that starts before end
+            cur_idx = insert_idx
+            while cur_idx < len(pass_ints):
+                next_num_passengers, next_start, _ = pass_ints[cur_idx]
+                if end <= next_start:
+                    break
+                if num_passengers + next_num_passengers > capacity:
+                    return False
+                cur_idx += 1
+
+            # insert this trip into pass_ints and update
+            self.insertAt(pass_ints, trip, insert_idx)
+
+        return True
+
+    def insertAt(self, pass_ints: List[List[int]], trip: List[int], insert_index: int):
+        """
+        Helper function to insert a trip into pass_ints, may need to split and merge.
+
+        Time: O(N) in worst case
+        Space: O(N) in worst case
+        """
+        num_pass, start, end = trip
+        if end <= start:
+            return
+
+        if not pass_ints:
+            pass_ints.append(trip)
+            return
+
+        # can append or merge with last interval
+        last_num_pass, _, last_end = pass_ints[-1]
+        if insert_index == len(pass_ints) and (start > last_end or start == last_end and num_pass != last_num_pass):
+            pass_ints.append(trip)
+            return
+        if insert_index == len(pass_ints) and start == last_end and num_pass == last_num_pass:
+            pass_ints[-1][2] = end
+            return
+
+        # can insert at front or merge with first interval
+        first_num_pass, first_start, _ = pass_ints[0]
+        if insert_index == 0 and end < first_start:
+            pass_ints.insert(0, trip)
+            return
+        if insert_index == 0 and end == first_start and num_pass == first_num_pass:
+            pass_ints[0][1] = start
+            return
+
+        # handle cases where start != cur_start
+        cur_num_pass, cur_start, cur_end = pass_ints[insert_index]
+        if start < cur_start:
+            pass_ints.insert(insert_index, [num_pass, start, cur_start])
+            self.insertAt(
+                pass_ints, [num_pass, cur_start, end], insert_index + 1)
+            return
+        if start > cur_start:
+            pass_ints[insert_index][1] = start
+            pass_ints.insert(insert_index, [cur_num_pass, cur_start, start])
+            self.insertAt(pass_ints, trip, insert_index + 1)
+            return
+
+        # handle cases where end != cur_end
+        if end > cur_end:
+            pass_ints[insert_index][0] += num_pass
+            self.insertAt(
+                pass_ints, [num_pass, cur_end, end], insert_index + 1)
+            return
+        if end < cur_end:
+            pass_ints[insert_index][1] = end
+            pass_ints.insert(
+                insert_index, [num_pass + cur_num_pass, start, end])
+            return
+
+        # start == cur_start, end == cur_end
+        pass_ints[insert_index][0] += num_pass
+
+    def carPooling(self, trips: List[List[int]], capacity: int) -> bool:
+        """
+        Another algorithm
+
+        Time: O(NlogN)
+        Space: O(N)
+        """
+        # sort with start time
+        trips.sort(key=lambda t: t[1])
+        start_load = [(t[1], t[0]) for t in trips]
+        # print(start_load)
+
+        # sort with end time
+        trips.sort(key=lambda t: t[2])
+        end_load = [(t[2], t[0]) for t in trips]
+        # print(end_load)
+
+        start_idx = end_idx = 0
+        cur_load = 0
+
+        while start_idx < len(start_load):
+            cur_start, cur_add_load = start_load[start_idx]
+            cur_end, cur_del_load = end_load[end_idx]
+
+            if cur_start < cur_end:
+                cur_load += cur_add_load
+                if cur_load > capacity:
+                    return False
+                start_idx += 1
+                continue
+
+            if cur_end <= cur_start:
+                cur_load -= cur_del_load
+                end_idx += 1
+
+        return True
+
+    def carPooling(self, trips: List[List[int]], capacity: int) -> bool:
+        """
+        Another algorithm from discussion section.
+
+        Time: O(N + max distance)
+        Space: O(N)
+        """
+        start_load = {}
+        end_load = {}
+        max_distance = 0
+
+        # take record of at which location we have how many passengers aboard and leave
+        # and the max distance we have travelled
+        for num_passengers, start, end in trips:
+            if num_passengers > capacity:
+                return False
+
+            if start not in start_load:
+                start_load[start] = 0
+            start_load[start] += num_passengers
+
+            if end not in end_load:
+                end_load[end] = 0
+            end_load[end] += num_passengers
+
+            max_distance = max(max_distance, end)
+
+        # at each location, unload leaving passengers and load new passengers
+        # and check load vs. capacity
+        cur_load = 0
+        for cur_loc in range(max_distance):
+            # anyone leaves?
+            if cur_loc in end_load:
+                cur_load -= end_load[cur_loc]
+            # anyone onboards?
+            if cur_loc in start_load:
+                cur_load += start_load[cur_loc]
+                if cur_load > capacity:
+                    return False
+
+        return True
+
+
+class Swapping:
+    def minSwapping(self, nums: List[int]) -> int:
+        """
+        (Algorithm from the GeeksForGeeks page)
+        Given an array of n distinct elements, find the minimum number of swaps required to sort the array.
+
+        Time: O(NlogN)
+        Space: O(N)
+        """
+        # use a graph cycle to determine how many swaps we need
+        # e.x.
+        #   |---------->|                 |---------->|
+        #   5  6  2  3  1  4           5  6  2  3  1  4
+        #   |<----------|                 |<-|<-|<----|
+        # for each cycle, number of swaps needed is the number of edges - 1
+
+        min_swaps = 0
+        num_idx = {}  # correct idx of each num
+        old_nums = nums.copy()  # space O(N)
+        nums.sort()  # O(NlogN)
+        for i, num in enumerate(nums):
+            num_idx[num] = i
+        # print(num_idx)  # {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5}
+
+        cur_circle = []
+        res_nums = set(nums)
+
+        for num in old_nums:  # O(N)
+            if num not in res_nums:
+                continue
+
+            # form the circle
+            start_num = cur_num = num
+            while True:
+                cur_circle.append(cur_num)
+                res_nums.remove(cur_num)
+                # find the number who is currently at the index cur_num is supposed to be at
+                cur_num = old_nums[num_idx[cur_num]]
+                if cur_num == start_num:
+                    min_swaps += len(cur_circle) - 1
+                    cur_circle = []
+                    break
+
+        return min_swaps
+
+    def minSwappingNoGraph(self, nums: List[int]) -> int:
+        """
+        (Algorithm from the GeeksForGeeks page: no graph, keep swapping to keep prefix of array sorted.
+         Intuitively I think it's correct but I haven't tried to prove it.)
+        Given an array of n distinct elements, find the minimum number of swaps required to sort the array.
+
+        Time: O(NlogN)
+        Space: O(N)
+        """
+        min_swap = 0
+        old_nums = nums.copy()
+        old_num_idx = {}
+        for i, num in enumerate(old_nums):
+            old_num_idx[num] = i
+
+        nums.sort()
+        # keep [:i] always sorted
+        for i, num in enumerate(old_nums):
+            if num == nums[i]:
+                continue
+            # swap i and correct num that should be at i
+            correct_num_i = old_num_idx[nums[i]]
+            old_nums[i], old_nums[correct_num_i] = old_nums[correct_num_i], old_nums[i]
+            min_swap += 1
+
+        return min_swap
+
+
+if __name__ == "__main__":
+    s = Swapping()
+    min_swap = s.minSwapping([5, 6, 2, 3, 1, 4])
+    print(min_swap)
+    min_swap = s.minSwapping([4, 3, 2, 1])
+    print(min_swap)
+    min_swap = s.minSwapping([1, 5, 4, 3, 2])
+    print(min_swap)
+
+    min_swap = s.minSwappingNoGraph([5, 6, 2, 3, 1, 4])
+    print(min_swap)
+    min_swap = s.minSwappingNoGraph([4, 3, 2, 1])
+    print(min_swap)
+    min_swap = s.minSwappingNoGraph([1, 5, 4, 3, 2])
+    print(min_swap)
