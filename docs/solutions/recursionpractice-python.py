@@ -1,5 +1,4 @@
-from logging.config import valid_ident
-from typing import Optional
+from typing import List, Optional
 
 
 class TreeNode:
@@ -168,6 +167,57 @@ class Solution:
                 root.right, targetSum, sum_to_root, sum_to_root_count_cp)
 
         return num_valid_paths + left_valid_paths + right_valid_paths
+
+
+class Solution:
+    def subsets(self, nums: List[int]) -> List[List[int]]:
+        """
+        (RECURSIVE)
+        Given an integer array nums of unique elements, return all possible subsets (the power set).
+
+        Time: O(2^N)
+        Space: O(2^N * N) - 2^N subsets, each subset has 0~N numbers (avg N/2 numbers per subset)
+               O(2^N) if not counting return output
+        """
+        if not nums:
+            return [[]]
+
+        prev_subsets = self.subsets(nums[:-1])
+
+        return prev_subsets + [ps + [nums[-1]] for ps in prev_subsets]
+
+    def subsets(self, nums: List[int]) -> List[List[int]]:
+        """
+        (ITERATIVE)
+
+        Time: O(2^N)
+        Space: O(2^N * N)
+               O(1) if not counting return output
+        """
+        all_subsets = [[]]
+
+        # 2^0 + 2^1 + ... + 2^(N-1) = 2^N - 1
+        for num in nums:
+            all_subsets += [s + [num] for s in all_subsets]
+
+        return all_subsets
+
+    def subsets(self, nums: List[int]) -> List[List[int]]:
+        """
+        (BACKTRACK)
+
+        Time: O(2^N)
+        Space: O(2^N * N)
+        """
+        answer = [[]]
+        for i in range(len(nums)):  # O(N)
+            self.backtrack(nums, [], i, answer)
+        return answer
+
+    def backtrack(self, nums: List[int], prefix: List[int], startI: int, allSubsets: List[List[int]]):
+        allSubsets.append(prefix + [nums[startI]])
+        for i in range(startI + 1, len(nums)):
+            self.backtrack(nums, prefix + [nums[startI]], i, allSubsets)
 
 
 class Solution:
