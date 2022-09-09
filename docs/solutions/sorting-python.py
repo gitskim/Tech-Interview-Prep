@@ -1197,6 +1197,58 @@ class Swapping:
         return min_swap
 
 
+class PancakeSorting:
+    """
+    Given an unsorted array, sort the given array with only: flip(arr, i): Reverse array from 0 to i 
+    """
+
+    def __init__(self, nums: List[int]) -> None:
+        self.nums = nums
+
+    def findMaxIndex(self, start: int, end: int) -> int:
+        """
+        Helper function to find the index of max number in self.nums[start: end+1]
+
+        Time: O(N)
+        Space: O(1)
+        """
+        max_index = 0
+        max_num = self.nums[start]
+
+        for i, num in enumerate(self.nums[start: end+1]):
+            if num > max_num:
+                max_num = num
+                max_index = i
+        return max_index
+
+    def flip(self, start: int, end: int) -> None:
+        """
+        Helper function to flip self.nums[start: end+1]
+
+        Time: O(N)
+        Space: O(1)
+        """
+        while start < end:
+            self.nums[start], self.nums[end] = self.nums[end], self.nums[start]
+            start += 1
+            end -= 1
+
+    def flipSort(self) -> int:
+        """
+        (Algorithm from http://www.youtube.com/embed/kk-_DDgoXfk.)
+        Find the max num at index i_max, flip nums[i_max:len] to put max at the end. 
+        Then find 2nd max num i2_max, flip nums[i2_max:len-1] to put 2nd max at nums[len-2].
+        Keep doing it to make sure at each loop, the suffix of nums is sorted.
+
+        Time: O(N^2)
+        Space: O(1)
+        """
+        for flip_end in range(len(self.nums)-1, 0, -1):  # O(N)
+            flip_start = self.findMaxIndex(0, flip_end)  # O(N)
+            if flip_start < flip_end:
+                self.flip(flip_start, flip_end)  # O(N)
+
+
 if __name__ == "__main__":
     s = Swapping()
     min_swap = s.minSwapping([5, 6, 2, 3, 1, 4])
@@ -1212,3 +1264,11 @@ if __name__ == "__main__":
     print(min_swap)
     min_swap = s.minSwappingNoGraph([1, 5, 4, 3, 2])
     print(min_swap)
+
+    ps = PancakeSorting([23, 10, 20, 11, 12, 6, 7])
+    ps.flipSort()
+    print(ps.nums)
+
+    ps2 = PancakeSorting([0, 1, 1, 0, 0])
+    ps2.flipSort()
+    print(ps2.nums)
