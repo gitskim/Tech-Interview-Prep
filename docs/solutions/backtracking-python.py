@@ -1,5 +1,5 @@
 import collections
-from sys import prefix
+from enum import unique
 from typing import Dict, List, Set
 
 
@@ -175,7 +175,7 @@ class Solution:
     def combinationSum(self, candidates: List[int], target: int) -> List[List[int]]:
         """
         (RECURSIVE)
-        Array of distinct int candidates and an int target 
+        Array of distinct int candidates and an int target
           -> all unique combinations of candidates that sum to target
         The same number may be chosen from candidates an unlimited number of times.
         e.x. candidates = [2,3,6,7], target = 7 -> [[2,2,3],[7]]
@@ -261,3 +261,257 @@ class Solution:
                 return
             self.combinationBT(candidates, target, prefix +
                                [candidates[i]], i, allSums)
+
+    def isPalindrome(self, substr: str) -> bool:
+        """
+        O(N)
+        """
+        i = 0
+        j = len(substr) - 1
+        while i < j:
+            if substr[i] != substr[j]:
+                return False
+            i += 1
+            j -= 1
+        return True
+
+    def partition(self, s: str) -> List[List[str]]:
+        """
+        (RECURSIVE)
+        Partition s such that every substring is a palindrome.
+        e.x. s = "aab" -> [["a","a","b"],["aa","b"]]
+
+        Time: O(N * 2^N) - worst case all subsets are palindromes
+        Space: O(N * 2^N)
+        """
+        all_pals = []
+        if self.isPalindrome(s):
+            all_pals.append([s])
+
+        for i in range(len(s)-1, 0, -1):
+            last_substr = s[i:]
+            if self.isPalindrome(last_substr):
+                all_pals += [p + [last_substr] for p in self.partition(s[:i])]
+
+        return all_pals
+
+    def partition(self, s: str) -> List[List[str]]:
+        """
+        (BACKTRACKING)
+
+        Time: O(N * 2^N) - worst case all subsets are palindromes
+        Space: O(N) - prefix at max N items, O(N * 2^N) if counting all_pals passed around
+        """
+        all_pals = []
+        self.partitionBT(s, [], 0, all_pals)
+        return all_pals
+
+    def partitionBT(self, s: str, prefix: List[str], start: int, allPals: List[List[str]]):
+        if start > len(s) - 1:
+            allPals.append(prefix)
+            return
+
+        for i in range(start, len(s)):
+            if self.isPalindrome(s[start: i+1]):
+                self.partitionBT(s, prefix + [s[start: i+1]], i+1, allPals)
+
+    def permute(self, nums: List[int]) -> List[List[int]]:
+        """
+        (RECURSIVE)
+        An array nums of distinct integers, return all the possible permutations.
+        e.x. nums = [1,2,3] -> [[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]]
+
+        Time: O(N!+(N-1)!+...+1)
+        Space: O(N!)
+        """
+        if len(nums) == 1:
+            return [nums]
+
+        all_perms = []
+
+        res_perms = self.permute(nums[1:])
+        for perm in res_perms:
+            for i in range(len(perm)):
+                perm.insert(i, nums[0])
+                all_perms.append(perm.copy())
+                perm.pop(i)
+            perm.append(nums[0])
+            all_perms.append(perm.copy())
+
+        return all_perms
+
+    def permute(self, nums: List[int]) -> List[List[int]]:
+        """
+        (BACKTRACKING)
+
+        Time: O(N!+(N-1)!+...+1)
+        Space: O(N!) - O(N) without output
+        """
+        if len(nums) == 1:
+            return [nums]
+
+        all_nums = set(nums)
+        all_perms = []
+        self.permuteBT(all_nums, [], all_perms)
+        return all_perms
+
+    def permuteBT(self, all_nums: Set[int], prefix: List[int], all_perms: List[List[int]]):
+        if len(prefix) == len(all_nums):
+            all_perms.append(prefix)
+            return
+
+        res_nums = all_nums - set(prefix)
+        for num in res_nums:
+            self.permuteBT(all_nums, prefix + [num], all_perms)
+
+    def permuteUnique(self, nums: List[int]) -> List[List[int]]:
+        """
+        (BACKTRACKING)
+        Array of nums, that might contain duplicates, return all possible unique permutations in any order.
+        e.x. nums = [1,1,2] -> [[1,1,2],[1,2,1],[2,1,1]]
+
+        Time: O(N!+(N-1)!+...+1)
+        Space: O(N!) - O(N) if not considering args passing around
+        """
+        if len(nums) == 1:
+            return [nums]
+
+        nums_count = collections.Counter(nums)
+
+        all_perms = []
+        self.permuteUniqueBT(len(nums), nums_count, [], all_perms)
+        return all_perms
+
+    def permuteUniqueBT(self, total_nums: int, nums_count: Dict[int, int], prefix: List[int], all_perms: List[List[int]]):
+        if len(prefix) == total_nums:
+            all_perms.append(prefix)
+            return
+
+        remain_nums = nums_count.copy()
+        for n in prefix:
+            remain_nums[n] -= 1
+            if remain_nums[n] == 0:
+                remain_nums.pop(n)
+
+        for n in remain_nums.keys():
+            self.permuteUniqueBT(total_nums, nums_count,
+                                 prefix + [n], all_perms)
+
+    def permuteUnique(self, nums: List[int]) -> List[List[int]]:
+        """
+        (RECURSIVE)
+
+        Time: O(N!+(N-1)!+...+1)
+        Space: O(N!)
+        """
+        if len(nums) == 1:
+            return [nums]
+
+        all_perms = []
+        unique_nums = set(nums)
+        for num in unique_nums:
+            remain_nums = nums.copy()
+            remain_nums.remove(num)
+            remain_perms = self.permuteUnique(remain_nums)
+            for perm in remain_perms:
+                all_perms.append([num] + perm)
+
+        return all_perms
+
+    def generateParenthesis(self, n: int) -> List[str]:
+        """
+        (RECURSIVE)
+        Given n pairs of parentheses, generate all combinations of well-formed parentheses.
+        e.x. n = 3 -> ["((()))","(()())","(())()","()(())","()()()"]
+
+        Time: O() - I don't know actually but in solution it says O(4^N / N^0.5)
+        Space: O() - same and in solution it says O(4^N / N^0.5)
+        """
+        return self.generateParsRec(["(", ")"] * n, n, n)
+
+    def generateParsRec(self, pars: List[str], n_left: int, n_right: int) -> List[str]:
+        """
+        Helper function to generate all combinations of semi well-formed parentheses.
+        e.x. ["(", ")", ")"] -> ["())", ")()"]
+        """
+        if len(pars) == 1:
+            return pars
+
+        all_pars = []
+
+        if n_left == 0:   # if all remaining pars are ")"
+            heads = [")"]
+        # we cannot let remaining part have more "(" than ")"
+        elif n_left == n_right:
+            heads = ["("]
+        else:
+            heads = ["(", ")"]
+
+        for h in heads:
+            remain_pars = pars.copy()
+            remain_pars.remove(h)
+            if h == ")":
+                all_remain_pars = self.generateParsRec(
+                    remain_pars, n_left, n_right-1)
+            else:
+                all_remain_pars = self.generateParsRec(
+                    remain_pars, n_left-1, n_right)
+            for par in all_remain_pars:
+                all_pars.append(h + par)
+        return all_pars
+
+    def generateParenthesis(self, n: int) -> List[str]:
+        """
+        (BACKTRACKING)
+
+        Time: O() - same and in solution it says O(4^N / N^0.5)
+        Space: O() - same and in solution it says O(4^N / N^0.5)
+        """
+        all_pars = []
+        par_count = {"(": n, ")": n}
+        self.generateParsBT(par_count, "", n, all_pars)
+        return all_pars
+
+    def generateParsBT(self, par_count: Dict[str, int], prefix: str, n: int, all_pars: List[str]):
+        if len(prefix) == 2 * n:
+            all_pars.append(prefix)
+            return
+
+        par_count_remain = par_count.copy()
+        for p in prefix:
+            par_count_remain[p] -= 1
+
+        if par_count_remain["("] == 0:
+            heads = [")"]
+        elif par_count_remain["("] == par_count_remain[")"]:
+            heads = ["("]
+        else:
+            heads = ["(", ")"]
+
+        for h in heads:
+            self.generateParsBT(par_count, prefix + h, n, all_pars)
+
+    def generateParenthesis(self, n: int) -> List[str]:
+        """
+        (Another RECURSIVE algo from solution)
+
+        Time: O() - same and in solution it says O(4^N / N^0.5)
+        Space: O() - same and in solution it says O(4^N / N^0.5)
+        """
+        # there must be a "(" at index 0, and a ")" at each 2*i + 1 as a closure ()
+        # ()..., (.)..., (..)..., (...)...
+        # for each closure of some "(" and ")", (seq_A)seq_B's seq_A and seq_B must be valid as well
+        if n == 0:
+            return [""]
+        if n == 1:
+            return ["()"]
+
+        all_pars = []
+        for i in range(n):
+            seq_a = self.generateParenthesis(i)
+            seq_b = self.generateParenthesis(n - (i + 1))
+            for left in seq_a:
+                for right in seq_b:
+                    all_pars.append(f"({left}){right}")
+
+        return all_pars
