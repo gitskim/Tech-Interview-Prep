@@ -211,13 +211,49 @@ class Solution:
 
     def findMedianSortedArrays(self, nums1: List[int], nums2: List[int]) -> float:
         """
-        (TODO)
+        (Algorithm from https://www.youtube.com/watch?v=q6IEA26hvXc&ab_channel=NeetCode)
         2 sorted arrays nums1 and nums2 of size m and n, return the median of the two sorted arrays.
         e.x. nums1 = [1,2], nums2 = [3,4] -> 2.50000
 
-        Time: O()
-        Space: O()
+        Time: O(log(min(M, N))) - (the question asks for O(log(M+N))) but I can't see how any algo does that
+        Space: O(1)
         """
-        # medium is either q+1_th smallest number or (q_th + q+1_th)/2
-        q, r = divmod(len(nums1) + len(nums2), 2)
-        return 0.0
+        # median is either the number at half_size + 1 or (num at half + num at half+1) / 2
+        half_size, rem = divmod(len(nums1) + len(nums2), 2)
+
+        # binary search in the shorter array, find a partition that can form the smaller half
+        if len(nums1) < len(nums2):
+            search_nums = nums1
+            other_nums = nums2
+        else:
+            search_nums = nums2
+            other_nums = nums1
+
+        if not search_nums:
+            return other_nums[half_size] if rem else (other_nums[half_size-1] + other_nums[half_size]) / 2.0
+
+        # append -MAXINT and MAXINT to left and right of both arrays to make checks easier
+        search_nums.insert(0, -math.pow(10, 6)-1)
+        other_nums.insert(0, -math.pow(10, 6)-1)
+        search_nums.append(math.pow(10, 6)+1)
+        other_nums.append(math.pow(10, 6)+1)
+
+        start = 0
+        end = len(search_nums) - 1
+        while start <= end:
+            mid = math.floor((start + end) / 2)
+            # smaller half contains mid+1 nums in search_nums and half_size+2-(mid+1) nums in other_nums
+            search_left_max = search_nums[mid]
+            search_right_min = search_nums[mid+1]
+            other_left_max = other_nums[(half_size+2) - (mid+1) - 1]
+            other_right_min = other_nums[(half_size+2) - (mid+1)]
+
+            # check if last num in smaller half <= first num in larger half in the other array
+            if search_left_max <= other_right_min and other_left_max <= search_right_min:
+                return min(search_right_min, other_right_min) if rem else (
+                    max(search_left_max, other_left_max) + min(search_right_min, other_right_min)) / 2.0
+
+            if search_left_max > other_right_min:
+                end = mid - 1
+            else:
+                start = mid + 1
