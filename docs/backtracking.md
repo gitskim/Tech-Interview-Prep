@@ -114,7 +114,97 @@ private Set<List<Integer>> postorder(int[] nums, int start) {
 }
 ```
 * https://leetcode.com/problems/combinations/
+Time complexity: O(  n!/(k!*(n-k)!)  )
+Space complexity: O(k)
+## preorder
+```java
+public List<List<Integer>> combine(int n, int k) {
+    Set<List<Integer>> ans = new HashSet<>();
+    if (k > n) {
+        return new ArrayList<>(ans);
+    }
+    preorder(n, k, ans, new ArrayList<>());
+    return new ArrayList<>(ans);
+}
+
+private void preorder(int start, int k, Set<List<Integer>> ans, List<Integer> interm) {
+    if (k == 0) {
+        ans.add(new ArrayList<>(interm));
+        return;
+    }
+    while (start != 0) { // 3
+        interm.add(start);
+        preorder(start - 1, k - 1, ans, interm);
+        interm.remove(interm.size() - 1);
+        start--;
+    }
+}
+```
+
+## postorder
+
+```java
+private List<List<Integer>> postorder(int start, int k) {
+    // if (start < 0) {
+    //     return new ArrayList<>();
+    // }
+    if (k == 0) {
+        return new ArrayList<>(){{add(new ArrayList<>());}};
+    }
+    
+    List<List<Integer>> siblingWork = new ArrayList<>();
+    while (start != 0) {
+        List<List<Integer>> childWork = postorder(start - 1, k - 1);
+        for (List<Integer> list : childWork) {
+            list.add(start);
+            siblingWork.add(list);
+        }
+        start--;
+    }
+    return siblingWork;
+}
+```
 * https://leetcode.com/problems/combination-sum/
+
+* Time complexity: O(150^N)
+* Space Complexity: O(N)
+
+## Preorder
+
+```java
+public List<List<Integer>> combinationSum(int[] candidates, int target) {
+    Set<List<Integer>> ans = new HashSet<>();
+    preorder(candidates, 0, target, ans, new ArrayList<>());
+    return new ArrayList<>(ans);
+}
+
+private void preorder(int[] candidates, int level, int target, Set<List<Integer>> ans, List<Integer> interm) {
+    
+    if (level == candidates.length) return;
+    
+    int repeat = 0;
+    int total = 0;
+    
+    int cur = candidates[level];
+    while (total <= target) {
+        
+        if (repeat != 0) {
+            interm.add(cur);
+        }
+        if (total == target) {
+            ans.add(new ArrayList<>(interm));
+        }
+        
+        preorder(candidates, level + 1, target - total, ans, interm);
+        
+        repeat++;
+        total = repeat * cur;
+    }
+    // removing siblings from interm
+    while(--repeat != 0) {interm.remove(interm.size() - 1);}
+}
+```
+
 * https://leetcode.com/problems/palindrome-partitioning/
 * https://leetcode.com/problems/permutations/
 * https://leetcode.com/problems/permutations-ii/
