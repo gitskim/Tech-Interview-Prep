@@ -1,6 +1,6 @@
 import heapq
 import math
-from typing import List, Set
+from typing import Dict, List, Set
 
 
 class Solution:
@@ -373,3 +373,354 @@ class Graph:
         # pop node to move to another path
         root_to_leaf.remove(node)
         return False
+
+    def findOrder(self, numCourses: int, prerequisites: List[List[int]]) -> List[int]:
+        """
+        (Topological ordering problem)
+        There are a total of numCourses courses you have to take, labeled from 0 to numCourses - 1. 
+        prerequisites[i] = [ai, bi] indicates that you must take course bi before ai.
+        Find the ordering of courses you should take to finish all courses.
+        e.x. numCourses = 4, prerequisites = [[1,0],[2,0],[3,1],[3,2]] -> [0,2,1,3]
+
+        Time: O(n + p)
+        Space: O(n)
+        """
+        if not prerequisites:
+            return [c for c in range(numCourses)]
+
+        # reverse each edge to make edges of [ai, bi] such that you must take ai before bi
+        before_afters = [[bi, ai] for [ai, bi] in prerequisites]
+        self.formGraph(numCourses, before_afters, directed=True)
+
+        # dfs and form the reverse order
+        reverse_order = []
+        root_to_leaf = set()
+        nodes_to_visit = set([c for c in range(numCourses)])
+
+        for c in range(numCourses):
+            if c in nodes_to_visit:
+                if not self.dfs_reverse(c, reverse_order, root_to_leaf, nodes_to_visit):
+                    return []
+
+        # reverse and return the correct order
+        return list(reversed(reverse_order))
+
+    def dfs_reverse(self, node: int, reverse_order: List[int], root_to_leaf: Set[int], nodes_to_visit: Set[int]) -> bool:
+        """
+        Time: O(V+E)
+        Space: O(V)
+        """
+        root_to_leaf.add(node)
+        nodes_to_visit.remove(node)
+
+        if node in self.edges:
+            for child in self.edges[node]:
+                # detect a cycle
+                if child in root_to_leaf:
+                    return False
+                if child in nodes_to_visit:
+                    if not self.dfs_reverse(child, reverse_order, root_to_leaf, nodes_to_visit):
+                        return False
+
+        reverse_order.append(node)
+        root_to_leaf.remove(node)
+        return True
+
+    def accountsMerge(self, accounts: List[List[str]]) -> List[List[str]]:
+        """
+        Merge email accounts of a same person. If two account lists share a same email, they belong to one.
+        Accounts can be in any order, emails within an account need to be sorted.
+        e.x. accounts = [["John","johnsmith@mail.com","john_newyork@mail.com"],
+                         ["John","johnsmith@mail.com","john00@mail.com"],
+                         ["Mary","mary@mail.com"],
+                         ["John","johnnybravo@mail.com"]]
+                     -> [["John","john00@mail.com","john_newyork@mail.com","johnsmith@mail.com"],
+                         ["Mary","mary@mail.com"],
+                         ["John","johnnybravo@mail.com"]]
+             Explanation: 1st and 2nd have the common email "johnsmith@mail.com".
+                          3rd John and Mary are different people as none of their email addresses are 
+                          used by other accounts.
+
+        Time: O(N^2 * A + N * M_AlogM_A), A: account len, M_A: merged account len
+        Space: O(N + E) < O(N^2), E: number of edges, connected accounts
+        """
+        # form an undirected graph that connects accounts of a same person together
+        # each edge means two accounts belong to same person (share an email)
+        # O(N^2 * max account len)
+        edges = [set() for _ in range(len(accounts))]
+        for i, ac in enumerate(accounts):  # O(N)
+            for j in range(i+1, len(accounts)):  # O(N)
+                common_emails = set(ac[1:]).intersection(
+                    set(accounts[j][1:]))  # O(max account len)
+                if common_emails:
+                    edges[i].add(j)
+                    edges[j].add(i)
+
+        # print(edges)
+
+        # find connected parts in graph, with dfs
+        nodes_to_visit = set([a for a in range(len(accounts))])  # space O(V)
+        merged_accounts = {}  # space O(E)
+        while nodes_to_visit:  # time O(V+E) < O(N^2)
+            next_root = next(iter(nodes_to_visit))
+            connected_nodes = set()
+            self.dfs_connected(next_root, connected_nodes,
+                               nodes_to_visit, edges)
+            merged_accounts[next_root] = connected_nodes
+
+        # print(merged_accounts)
+        merged_ac_emails = []
+        for name_id, ac_ids in merged_accounts.items():
+            ac_emails = set()
+            for id in ac_ids:
+                # O(len of max account -> A)
+                ac_emails = ac_emails.union(set(accounts[id][1:]))
+            merged_ac_emails.append(
+                [accounts[name_id][0]] + sorted(list(ac_emails)))  # O(M_AlogM_A) - M_A: len of merged account
+        return merged_ac_emails
+
+    def dfs_connected(self, node: int, connected_nodes: Set[int], nodes_to_visit: Set[int], edges: List[Set[int]]):
+        nodes_to_visit.remove(node)
+        connected_nodes.add(node)
+
+        for child in edges[node]:
+            if child in nodes_to_visit:
+                self.dfs_connected(child, connected_nodes,
+                                   nodes_to_visit, edges)
+
+    def accountsMerge(self, accounts: List[List[str]]) -> List[List[str]]:
+        """
+        (another brute force algo)
+        Time: O(N^2 + ElogE) - N: num of accounts, E: num of total emails
+        Space: O(N + E)
+        """
+        account_owners = {}  # space O(N)
+        account_emails = {}  # space O(N + E)
+        for i, ac in enumerate(accounts):  # O(N)
+            account_owners[i] = i
+            account_emails[i] = set(ac[1:])  # O(E) in total
+
+            # check if overlap with any earlier accounts
+            for j in range(i):  # O(N)
+                if account_emails[j].intersection(account_emails[i]):
+                    account_owners[i] = account_owners[j]
+                    account_emails[j] = account_emails[j].union(
+                        account_emails[i])
+                    break
+
+            # update all accounts connected to me as well
+            if account_owners[i] < i:
+                for j in range(i):  # O(N)
+                    if account_owners[j] != account_owners[i] and account_emails[j].intersection(account_emails[i]):
+                        account_owners[j] = account_owners[i]
+                        account_emails[account_owners[i]] = account_emails[account_owners[i]].union(
+                            account_emails[j])
+                        account_emails[j] = set()
+
+                account_emails[i] = set()
+
+        # generate merged accounts, O(N + ElogE)
+        merged_accounts = []
+        for ac_id, ac_emails in account_emails.items():
+            if ac_emails:
+                merged_accounts.append(
+                    [accounts[ac_id][0]] + sorted(list(ac_emails)))
+
+        return merged_accounts
+
+    def accountsMerge(self, accounts: List[List[str]]) -> List[List[str]]:
+        """
+        (another dfs algo from solution - node as single email, way faster)
+        Time: O(ElogE) - E: num of total emails
+        Space: O(E)
+        """
+        edges = {}  # space O(E)
+        emails_to_visit = set()  # space O(E)
+
+        # form a graph where nodes are connected if they are shared by the same person
+        # time O(E) in total
+        for ac in accounts:
+            if ac[1] not in edges:
+                edges[ac[1]] = set()
+            emails_to_visit.add(ac[1])
+
+            if len(ac) == 2:
+                continue
+            for i in range(2, len(ac)):
+                if ac[i] == ac[i-1]:
+                    continue
+                if ac[i] not in edges:
+                    edges[ac[i]] = set()
+                edges[ac[i-1]].add(ac[i])
+                emails_to_visit.add(ac[i])
+
+        # make all edges double direction
+        for node, childs in edges.items():
+            for child in childs:
+                if child not in edges:
+                    edges[child] = set()
+                edges[child].add(node)
+
+        # print(edges)
+
+        merged_accounts = []
+        for ac in accounts:
+            if ac[1] in emails_to_visit:
+                connected_emails = set()
+                self.dfs_emails(ac[1], connected_emails,
+                                emails_to_visit, edges)
+                merged_accounts.append(
+                    [ac[0]] + sorted(list(connected_emails)))
+
+        return merged_accounts
+
+    def dfs_emails(self, email: str, connected_emails: List[str], emails_to_visit: Set[str], edges: Dict[str, Set[str]]):
+        connected_emails.add(email)
+        emails_to_visit.remove(email)
+
+        for child in edges[email]:
+            if child in emails_to_visit:
+                self.dfs_emails(child, connected_emails,
+                                emails_to_visit, edges)
+
+    def accountsMerge(self, accounts: List[List[str]]) -> List[List[str]]:
+        """
+        (another disjoint union set algo from solution - node as single email, faster than earlier DUS algo)
+        Time: O(N^2 * E + ElogE) - N: num of accounts, E: num of total emails
+        Space: O(N + E)
+        """
+        group_parent = {a: a for a in range(
+            len(accounts))}  # time O(N), space O(N)
+        # time O(N), space O(N)
+        group_rank = {a: 0 for a in range(len(accounts))}
+        email_group = {}  # space O(E)
+
+        # time O(N)
+        def find_parent(group_id: int) -> int:
+            while group_parent[group_id] != group_id:
+                group_id = group_parent[group_id]
+            return group_id
+
+        # time O(N)
+        def merge_group_id(group_id_1: int, group_id_2: int):
+            parent_1 = find_parent(group_id_1)
+            parent_2 = find_parent(group_id_2)
+
+            if group_rank[parent_1] > group_rank[parent_2]:
+                group_parent[parent_2] = parent_1
+            elif group_rank[parent_1] < group_rank[parent_2]:
+                group_parent[parent_1] = parent_2
+            else:
+                group_parent[parent_2] = parent_1
+                group_rank[parent_1] += 1
+
+        # time O(N)
+        for group_id, ac in enumerate(accounts):
+            for email in ac[1:]:  # time O(E) in total
+                if email not in email_group:
+                    email_group[email] = group_id
+                else:
+                    merge_group_id(email_group[email], group_id)  # time O(N)
+
+        # print(f"group parent: {group_parent}")
+        # print(f"group rank: {group_rank}")
+        # print(f"email group: {email_group}")
+
+        merged_id_emails = {}
+        for email, group_id in email_group.items():  # time O(E)
+            # find root of the same group
+            parent = find_parent(group_id)  # time O(N)
+            # add email to group
+            if parent not in merged_id_emails:
+                merged_id_emails[parent] = set()
+            merged_id_emails[parent].add(email)
+
+        # time O(ElogE + N)
+        return [[accounts[group_id][0]] + sorted(list(emails)) for group_id, emails in merged_id_emails.items()]
+
+    def findMinHeightTrees(self, n: int, edges: List[List[int]]) -> List[int]:
+        """
+        Find the list of roots of all minimum height trees (MHTs) formed by edges.
+        e.x. n = 4, edges = [[1,0],[1,2],[1,3]] -> [1]
+             all trees formed by edges: 0 - 1 - 2/3
+                                        1 - 0/2/3
+                                        2 - 1 - 0/3
+                                        3 - 1 - 0/2
+
+        Time: O(N^2) - since it's a tree, it has (N-1) edges: O(N * (N + E)) -> O(N^2)
+        Space: O(N)
+        """
+        min_height = n
+        mht_roots = []
+
+        self.formGraph(n, edges)
+        all_nodes = set([x for x in range(n)])
+        # try DFS on each root node, and see if we can beat the current min_height
+        all_roots_to_check = all_nodes.copy()
+        while all_roots_to_check:
+            root = next(iter(all_roots_to_check))
+            root_to_leaf = []
+            nodes_to_visit = all_nodes.copy()
+            root_height = self.dfs_height(
+                root, root_to_leaf, nodes_to_visit, min_height)
+            # print(root, root_height)
+            if root_height == -1 or root_height > min_height:
+                continue
+            if root_height == min_height:
+                mht_roots.append(root)
+            else:
+                min_height = root_height
+                mht_roots = [root]
+            # print(min_height, mht_roots)
+
+        return mht_roots
+
+    def dfs_height(self, node: int, root_to_leaf: List[int], nodes_to_visit: Set[int], min_height: int) -> int:
+        root_to_leaf.append(node)
+        nodes_to_visit.remove(node)
+
+        if len(root_to_leaf) > min_height:
+            return -1
+
+        max_child_height = 0
+        for child in self.edges[node]:
+            if child in nodes_to_visit:
+                child_height = self.dfs_height(
+                    child, root_to_leaf, nodes_to_visit, min_height)
+                if child_height == -1:
+                    return -1
+                max_child_height = max(max_child_height, child_height)
+
+        root_to_leaf.pop()
+        return max_child_height + 1
+
+    def findMinHeightTrees(self, n: int, edges: List[List[int]]) -> List[int]:
+        """
+        (above DFS method exceeds time limit, another algo from solution)
+
+        Time: O(N) - since it's a tree, it has (N-1) edges: O(V + E) -> O(N)
+        Space: O(N)
+        """
+        # min_height
+        # -> means we need to find the roots that are the closest to all other nodes
+        # -> also means, at each layer from bottom up, we want to have as many nodes as possible at bottom,
+        #    at each layer bottom up, we find all possible (relative) leaf nodes
+        self.formGraph(n, edges)
+        # time O(V + E), space O(V + E)
+        double_edges = {node: set(self.edges[node]) for node in range(n)}
+
+        bottom_nodes = set([node for node in double_edges.keys()  # time O(V)
+                            if len(double_edges[node]) <= 1])
+        up_nodes = set()
+
+        while len(double_edges) > 2:
+            for node in bottom_nodes:  # time O(V) in total
+                child = list(double_edges[node])[0]
+                double_edges[child].remove(node)
+                if len(double_edges[child]) == 1:
+                    up_nodes.add(child)
+                double_edges.pop(node)
+            bottom_nodes = up_nodes.copy()
+            up_nodes = set()
+
+        return [node for node in double_edges.keys()]
