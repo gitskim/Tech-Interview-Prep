@@ -6,7 +6,7 @@ from typing import Dict, List, Set
 class Solution:
     def ladderLength(self, beginWord: str, endWord: str, wordList: List[str]) -> int:
         """
-        Given beginWord and endWord, and a wordList, return the number of words in the shortest 
+        Given beginWord and endWord, and a wordList, return the number of words in the shortest
         transformation sequence from beginWord to endWord, or 0 if no such sequence exists.
         e.x. beginWord = "hit", endWord = "cog", wordList = ["hot","dot","dog","lot","log","cog"] -> 5
 
@@ -103,9 +103,9 @@ class Solution:
 
     def numIslands(self, grid: List[List[str]]) -> int:
         """
-        m x n 2D binary grid which represents a map of '1's (land) and '0's (water), 
+        m x n 2D binary grid which represents a map of '1's (land) and '0's (water),
         return the number of islands.
-        An island is surrounded by water and formed by adjacent lands horizontally or vertically. 
+        An island is surrounded by water and formed by adjacent lands horizontally or vertically.
         e.x. grid = [                          -> 1
                     ["1","1","1","1","0"],
                     ["1","1","0","1","0"],
@@ -142,7 +142,7 @@ class Solution:
 
     def solve(self, board: List[List[str]]) -> None:
         """
-        m x n matrix board containing 'X' and 'O', capture all regions that are 4-directionally 
+        m x n matrix board containing 'X' and 'O', capture all regions that are 4-directionally
         surrounded by 'X'.
         A region is captured by flipping all 'O's into 'X's in that surrounded region.
         e.x. board = [["X","X","X","X"],   -> [["X","X","X","X"],
@@ -253,8 +253,8 @@ class Graph:
     def criticalConnections(self, n: int, connections: List[List[int]]) -> List[List[int]]:
         """
         (articulate bridge problem)
-        n servers from 0 to n - 1 connected by undirected connections and connections[i] = [ai, bi] 
-        represents a connection between servers ai and bi. 
+        n servers from 0 to n - 1 connected by undirected connections and connections[i] = [ai, bi]
+        represents a connection between servers ai and bi.
         A critical connection is a connection that, if removed, will make some servers disconnected.
         Return all critical connections in the network in any order.
         e.x. Input: n = 4, connections = [[0,1],[1,2],[2,0],[1,3]] -> [[1,3]]
@@ -332,11 +332,11 @@ class Graph:
 
     def canFinish(self, numCourses: int, prerequisites: List[List[int]]) -> bool:
         """
-        There are a total of numCourses courses you have to take, labeled from 0 to numCourses - 1. 
+        There are a total of numCourses courses you have to take, labeled from 0 to numCourses - 1.
         prerequisites[i] = [ai, bi] indicates that you must take course bi before ai.
         Check if can finish all courses.
         e.x. numCourses = 2, prerequisites = [[1,0],[0,1]] -> false
-             Explanation: To take course 1 you should have finished course 0, and to take course 0 
+             Explanation: To take course 1 you should have finished course 0, and to take course 0
                           you should also have finished course 1. So it is impossible.
 
         Time: O(n + p)
@@ -377,7 +377,7 @@ class Graph:
     def findOrder(self, numCourses: int, prerequisites: List[List[int]]) -> List[int]:
         """
         (Topological ordering problem)
-        There are a total of numCourses courses you have to take, labeled from 0 to numCourses - 1. 
+        There are a total of numCourses courses you have to take, labeled from 0 to numCourses - 1.
         prerequisites[i] = [ai, bi] indicates that you must take course bi before ai.
         Find the ordering of courses you should take to finish all courses.
         e.x. numCourses = 4, prerequisites = [[1,0],[2,0],[3,1],[3,2]] -> [0,2,1,3]
@@ -438,7 +438,7 @@ class Graph:
                          ["Mary","mary@mail.com"],
                          ["John","johnnybravo@mail.com"]]
              Explanation: 1st and 2nd have the common email "johnsmith@mail.com".
-                          3rd John and Mary are different people as none of their email addresses are 
+                          3rd John and Mary are different people as none of their email addresses are
                           used by other accounts.
 
         Time: O(N^2 * A + N * M_AlogM_A), A: account len, M_A: merged account len
@@ -724,3 +724,255 @@ class Graph:
             up_nodes = set()
 
         return [node for node in double_edges.keys()]
+
+
+class DisjointUnionSet:
+
+    def formSets(self, m: int, n: int):
+        self.node_parent = []  # m * n
+        self.parent_rank = []  # m * n
+        self.num_islands = 0
+
+        for r in range(m):  # m * n
+            row = []
+            for c in range(n):
+                row.append([r, c])
+            self.node_parent.append(row)
+            self.parent_rank.append([0] * n)
+
+    def findParent(self, row: int, col: int) -> List[int]:
+        while [row, col] != self.node_parent[row][col]:
+            row, col = self.node_parent[row][col]
+        return [row, col]
+
+    def unionSets(self, position1: List[int], position2: List[int]):
+        parent1 = self.findParent(position1[0], position1[1])
+        parent2 = self.findParent(position2[0], position2[1])
+        if parent1 == parent2:
+            return
+
+        self.num_islands -= 1
+        if self.parent_rank[parent1[0]][parent1[1]] < self.parent_rank[parent2[0]][parent2[1]]:
+            self.node_parent[parent1[0]][parent1[1]] = parent2
+        elif self.parent_rank[parent1[0]][parent1[1]] > self.parent_rank[parent2[0]][parent2[1]]:
+            self.node_parent[parent2[0]][parent2[1]] = parent1
+        else:
+            self.node_parent[parent2[0]][parent2[1]] = parent1
+            self.parent_rank[parent1[0]][parent1[1]] += 1
+
+    def numIslands2(self, m: int, n: int, positions: List[List[int]]) -> List[int]:
+        """
+        m x n grid all 0 initially. Generate a list of total number of islands of 1's after each 
+        flip 0->1 at position.
+        e.x. m = 3, n = 3, positions = [[0,0],[0,1],[1,2],[2,1]] -> [1,1,2,3]
+                [[0,0,0],[0,0,0],[0,0,0]] 
+             -> [[1,0,0],[0,0,0],[0,0,0]] (#islands: 1)
+             -> [[1,1,0],[0,0,0],[0,0,0]] (#islands: 1) 
+             -> [[1,1,0],[0,0,1],[0,0,0]] (#islands: 2)
+             -> [[1,1,0],[0,0,1],[0,1,0]] (#islands: 3)
+
+        Time: O(m * n + p) - union find with path compression and ranking is O(1) according to https://en.wikipedia.org/wiki/Disjoint-set_data_structure#Time_complexity
+        Space: O(m * n)
+        """
+        self.formSets(m, n)  # O(m * n)
+        total_islands = []
+
+        grid = []
+        for _ in range(m):
+            grid.append([0] * n)
+
+        for pos in positions:  # O(p)
+            row, col = pos
+            if grid[row][col] == 1:
+                total_islands.append(self.num_islands)
+                continue
+
+            grid[row][col] = 1
+            self.num_islands += 1
+
+            if row > 0 and grid[row-1][col] == 1:
+                self.unionSets([row-1, col], [row, col])
+            if row < m-1 and grid[row+1][col] == 1:
+                self.unionSets([row+1, col], [row, col])
+            if col > 0 and grid[row][col-1] == 1:
+                self.unionSets([row, col-1], [row, col])
+            if col < n-1 and grid[row][col+1] == 1:
+                self.unionSets([row, col+1], [row, col])
+
+            total_islands.append(self.num_islands)
+
+        return total_islands
+
+    def findCircleNum(self, isConnected: List[List[int]]) -> int:
+        """
+        n x n matrix isConnected where isConnected[i][j] = 1 if the ith city and the jth city are directly 
+        connected, and isConnected[i][j] = 0 otherwise.
+        Find the total number of groups of directly or indirectly connected cities.
+        e.x. isConnected = [[1,1,0],[1,1,0],[0,0,1]] -> 2
+
+        Time: O(n^2)
+        Space: O(n)
+        """
+        city_parent = {k: k for k in range(len(isConnected))}
+        parent_rank = {k: 0 for k in range(len(isConnected))}
+
+        def findParent(city: int) -> int:
+            while city != city_parent[city]:
+                city = city_parent[city]
+            return city
+
+        def unionCities(city1: int, city2: int):
+            cp1 = findParent(city1)
+            cp2 = findParent(city2)
+            if cp1 == cp2:
+                return
+            if parent_rank[cp1] > parent_rank[cp2]:
+                city_parent[cp2] = cp1
+            elif parent_rank[cp1] < parent_rank[cp2]:
+                city_parent[cp1] = cp2
+            else:
+                city_parent[cp1] = cp2
+                parent_rank[cp2] += 1
+
+        for i in range(len(isConnected)):
+            for j in range(i+1, len(isConnected[0])):
+                if isConnected[i][j]:
+                    if i not in city_parent:
+                        city_parent[i] = i
+                    if j not in city_parent:
+                        city_parent[j] = i
+                    unionCities(i, j)
+
+        groups = 0
+        for city, parent in city_parent.items():
+            if city == parent:
+                groups += 1
+        return groups
+
+    def minimumCost(self, n: int, connections: List[List[int]]) -> int:
+        """
+        (Kruskal's)
+        n cities labeled from 1 to n, connections[i] = [xi, yi, costi] indicates the cost of connecting 
+        city xi and city yi (bidirectional connection) is costi.
+        Find the minimum cost to connect all the n cities such that there is at least one path between 
+        each pair of cities. If it is impossible to connect all the n cities, return -1.
+        e.x. n = 3, connections = [[1,2,5],[1,3,6],[2,3,1]] -> 6
+
+        Time: O(ClogC)
+        Space: O(n)
+        """
+        # if < n-1 edges, no way we can form a spanning tree
+        if len(connections) < n-1:
+            return -1
+
+        # sort edges on edge cost, O(ClogC)
+        connections.sort(key=lambda x: x[2])
+
+        # detect cycle with DUS
+        city_parent = {k+1: k+1 for k in range(n)}
+        parent_rank = {k+1: 0 for k in range(n)}
+
+        def findParent(city: int) -> int:
+            while city != city_parent[city]:
+                city = city_parent[city]
+            return city
+
+        def unionCities(city1: int, city2: int):
+            cp1 = findParent(city1)
+            cp2 = findParent(city2)
+            if cp1 == cp2:
+                return
+            if parent_rank[cp1] > parent_rank[cp2]:
+                city_parent[cp2] = cp1
+            elif parent_rank[cp1] < parent_rank[cp2]:
+                city_parent[cp1] = cp2
+            else:
+                city_parent[cp1] = cp2
+                parent_rank[cp2] += 1
+
+        min_cost = i = collected = 0
+        while collected < n-1 and i < len(connections):
+            u, v, cost = connections[i]
+            i += 1
+
+            u_root = findParent(u)
+            v_root = findParent(v)
+            if u_root != v_root:  # no cycle
+                min_cost += cost
+                collected += 1
+                unionCities(u, v)
+
+        if collected < n-1:
+            return -1
+        return min_cost
+
+    def minimumCost(self, n: int, connections: List[List[int]]) -> int:
+        """
+        (another MST algo - Prim's)
+
+        Time: O(cnlogn)
+        Space: O(n)
+        """
+        # if < n-1 edges, no way we can form a spanning tree
+        if len(connections) < n-1:
+            return -1
+
+        min_cost = 0
+
+        mst_set = set()
+        # form a dict and a priority queue to make a priority dict
+        remain_dist_map = {}  # space O(n)
+        remain_dist = []  # space O(n)
+        # add the first node's dist to map and priority queue
+        first_node_dist = [0, 1]
+        remain_dist_map[1] = first_node_dist
+        heapq.heappush(remain_dist, first_node_dist)
+
+        edges = {}
+        for u, v, cost in connections:
+            if u not in edges:
+                edges[u] = []
+            edges[u].append([v, cost])
+            if v not in edges:
+                edges[v] = []
+            edges[v].append([u, cost])
+
+        while len(mst_set) < n:
+            if not remain_dist:
+                return -1
+            # find the min cut of two groups
+            min_dist, min_dist_node = heapq.heappop(remain_dist)
+            # update the mst min_cost
+            min_cost += min_dist
+            # move the node from the remaining group to the mst group
+            mst_set.add(min_dist_node)
+            remain_dist_map.pop(min_dist_node)
+
+            # update all remaining distances related to this node
+            updated_dist = False
+            for child, cost in edges[min_dist_node]:  # O(c) in total
+                if child in remain_dist_map:
+                    child_dist = remain_dist_map[child]
+                    if child_dist[0] > cost:
+                        child_dist[0] = cost
+                        updated_dist = True
+                elif child not in mst_set:
+                    child_dist = [cost, child]
+                    remain_dist_map[child] = child_dist
+                    heapq.heappush(remain_dist, child_dist)  # O(logn)
+
+            if updated_dist:
+                heapq.heapify(remain_dist)  # O(nlogn)
+
+        return min_cost
+
+    def findCheapestPrice(self, n: int, flights: List[List[int]], src: int, dst: int, k: int) -> int:
+        """
+        n cities connected by some number of flights, where flights[i] = [fromi, toi, pricei] indicates 
+        that flight from city fromi to city toi with cost pricei.
+        Find the cheapest price from src to dst with at most k stops. If there is no such route, return -1.
+
+        Time: O()
+        Space: O()
+        """
+        # TODO
