@@ -172,7 +172,7 @@ Then start assembling a puzzle, from outside pieces first: DATA
       - Keep adding columns for every next hour stats
       - 4 types of NoSQL databases: column, document, key-value and graph
         1. Cassandra: wide column database with asynchronous masterless replication
-        2. MongoDB: documented-oriented database with leader-based replication
+        2. MongoDB: document-oriented database with leader-based replication
         3. HBase: column-oriented data store with master-based architecture
 
 #### Processing service
@@ -190,16 +190,16 @@ Then start assembling a puzzle, from outside pieces first: DATA
   ![data_aggregation_basics](./img/data_aggregation.png)
     1. **Pre-aggregate** data (in memory) in the processing service is better (than updating databases for each write).
     2. **Push** or **pull**? 
-      - Push: other service sending events synchronously to the processing service
-      - Pull: processing service pulling events from some temporary storage
-      - **Pull** is better for fault-tolerance because it allows to re-process on crash
+        - Push: other service sending events synchronously to the processing service
+        - Pull: processing service pulling events from some temporary storage
+        - **Pull** is better for fault-tolerance because it allows to re-process on crash
     3. Checkpointing
-      - Mark in temporary storage (event queue) when writing to database (permanent storage)
-      - After crash it can start reprocessing from the checkpoint
+        - Mark in temporary storage (event queue) when writing to database (permanent storage)
+        - After crash it can start reprocessing from the checkpoint
     4. Partitioning
-      - Several different exclusive queues to store events, each living on its own machine.
-      - Select each queue with some algorithm, e.x. hash function. 
-      - This allows us to process in parallel.
+        - Several different exclusive queues to store events, each living on its own machine.
+        - Select each queue with some algorithm, e.x. hash function. 
+        - This allows us to process in parallel.
 - Design details
   ![processing_service_details](./img/processing_service.png)
   
@@ -309,17 +309,17 @@ Then start assembling a puzzle, from outside pieces first: DATA
       - Split hot partitions
       - Dedicated partitions for some popular keys
 - Service discovery: Partitioner service needs to know about every partition
-      - Server-side discovery: similar to load balancer
-      - Client-side discovery: every server instance registers itself in some **common place** (service registry), e.x. ZooKeeper.
+    - Server-side discovery: similar to load balancer
+    - Client-side discovery: every server instance registers itself in some **common place** (service registry), e.x. ZooKeeper.
 - Replication:
-      - Single leader: like SQL example above
-      - Multi leader: mostly used to replicate between several data centers
-      - Leaderless: like Cassandra example above
-      - For partition, we use single leader with quorum voting
+    - Single leader: like SQL example above
+    - Multi leader: mostly used to replicate between several data centers
+    - Leaderless: like Cassandra example above
+    - For partition, we use single leader with quorum voting
 - Message format:
-      - Textual format: XML, CSV, JSON
+    - Textual format: XML, CSV, JSON
         - Readable but repetitive info
-      - Binary format: Thrift, Protocol Buffers, Avro
+    - Binary format: Thrift, Protocol Buffers, Avro
         - Faster to parse and more compact, but less readable
 
 
@@ -331,7 +331,7 @@ Then start assembling a puzzle, from outside pieces first: DATA
     - Per minute data saved for several days
     - Aggregate into per hour data and save for several months
     - Aggregate into per day data for older than 3 months
-- Hot storage and cold storage:
+- Hot storage and cold storage
     - **Hot**: frequently used data that must be accessed fast
     - **Cold**: doesn’t require fast access
       - So we can put old data in AWS S3 for cold storage
@@ -394,7 +394,7 @@ Then start assembling a puzzle, from outside pieces first: DATA
         - (Not ideal) we want to have a single system
 - Hot partition solution
     - Batch events and store in S3
-    - At every persist, send a message to a massage broker like SQS
+    - At every persist, send a message to a message broker like SQS
     - A big cluster of machines like EC2 retrieve messages from SQS, read a batch from S3 and process
     - This architecture is a bit slower than stream process but faster than batch process (like stream of batches)
 
