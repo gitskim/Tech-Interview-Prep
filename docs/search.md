@@ -19,7 +19,19 @@ public int binarySearch(int[] nums, int target) {
     return -1;
 }
 ```
-
+```python
+def binary_search(nums: List[int], target: int) -> int: 
+  left, right = 0, len(nums) - 1
+  while left <= right:  
+    mid = (left + right)//2
+    if nums[mid] == target:
+      return mid
+    elif nums[mid] < target:
+      left = mid + 1
+    else:
+      right = mid - 1
+  return -1
+```
 ## recursive
 ```java
 public int binarySearch(int[] nums, int target, int left, int right) {
@@ -36,6 +48,24 @@ public int binarySearch(int[] nums, int target, int left, int right) {
         return mid;
     }
 }
+```
+```python
+def binarySearch(nums: List[int], target: int, start = 0, end = None) -> int:
+  if end is None: 
+    end = len(nums) - 1
+
+  if start > end:
+    return -1
+  
+  mid = (start + end)//2
+  if nums[mid] == target:
+    return mid
+  elif nums[mid] < target:
+    start = mid + 1
+    return binarySearch(nums, target, start, end) 
+  else:
+    end = mid - 1
+    return binarySearch(nums, target, start, end)
 ```
 
 2. Nearest neighbor binary search
