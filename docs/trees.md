@@ -1,128 +1,294 @@
 ---
 sidebar_position: 2
 ---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 
 # Tree Core Algorithms
 
 In trees, there are two main points of view: recursive and iterative.
 
-Core algorithms include **(1) BST methods, (2) PreOrderRecursive, (3) PreOrderIterative, (4) InOrderRecursive, (5) InOrderIterative, (6) PostOrder recursive, (7) PostOrderIterative, (8) BFS, (9) DFS, (10) LevelOrder**. Once you completely understand these, you can solve any tree question. 
+Core algorithms include **(1) BST methods, (2) PreOrderRecursive, (3) PreOrderIterative, (4) InOrderRecursive, (5) InOrderIterative, (6) PostOrder recursive, (7) PostOrderIterative, (8) BFS, (9) DFS, (10) LevelOrder**. Once you completely understand these, you can solve any tree question.
+
+
+<Tabs>
+<TabItem value="java" label="Java">
+
+```c
+private static class Node {
+  Node left;
+  Node right;
+  int value;
+  
+  public Node(Node left, Node right, int value) {
+    this.left = left;
+    this.right = right;
+    this.value = value;
+  }
+  
+  public Node(int value) {
+    this.left = null;
+    this.right = null;
+    this.value = value;
+  }
+}
+```
+
+</TabItem>
+<TabItem value="js" label="TypeScript">
+
+```js
+class node<T> {
+    val: T;
+    right?: node<T>;
+    left?: node<T>;
+
+    constructor(val: T, right?: node<T>, left?: node<T>) {
+    this.val = val;
+    this.right = right;
+    this.left = left;
+    }
+}
+```
+
+</TabItem>
+</Tabs>
 
 ### BST Methods
 
-```javascript
-public class BST {
-    /*****************************************************
-    *
-    *            INSERT
-    *
-    ******************************************************/
-       public void insert(T data)
-       {
-          root = insert(root, data);
-       }
-       private Node<T> insert(Node<T> p, T toInsert)
-       {
-          if (p == null)
-             return new Node<T>(toInsert);
-    
-          if (compare(toInsert, p.data) == 0)
-            return p;
-    
-          if (compare(toInsert, p.data) < 0)
-             p.left = insert(p.left, toInsert);
-          else
-             p.right = insert(p.right, toInsert);
-    
-          return p;
-       }
-    
-    /*****************************************************
-    *
-    *            SEARCH
-    *
-    ******************************************************/
-       public boolean search(T toSearch)
-       {
-          return search(root, toSearch);
-       }
-       private boolean search(Node<T> p, T toSearch)
-       {
-          if (p == null)
-             return false;
-          else
-          if (compare(toSearch, p.data) == 0)
-            return true;
-          else
-          if (compare(toSearch, p.data) < 0)
-             return search(p.left, toSearch);
-          else
-             return search(p.right, toSearch);
-       }
-    
-    /*****************************************************
-    *
-    *            DELETE
-    *
-    ******************************************************/
-    
-       public void delete(T toDelete)
-       {
-          root = delete(root, toDelete);
-       }
-       private Node<T> delete(Node<T> p, T toDelete)
-       {
-          if (p == null)  throw new RuntimeException("cannot delete.");
-          else
-          if (compare(toDelete, p.data) < 0)
-          p.left = delete (p.left, toDelete);
-          else
-          if (compare(toDelete, p.data)  > 0)
-          p.right = delete (p.right, toDelete);
-          else
-          {
-             if (p.left == null) return p.right;
-             else
-             if (p.right == null) return p.left;
-             else
-             {
-             // get data from the rightmost node in the left subtree
-                p.data = retrieveData(p.left);
-             // delete the rightmost node in the left subtree
-                p.left =  delete(p.left, p.data) ;
-             }
-          }
-          return p;
-       }
-       
-       /*************************************************
-        *
-        *            CLONE
-        *
-        **************************************************/
-       
-          public BST<T> clone()
-          {
-             BST<T> twin = null;
-       
-             if(comparator == null)
-                twin = new BST<T>();
-             else
-                twin = new BST<T>(comparator);
-       
-             twin.root = cloneHelper(root);
-             return twin;
-          }
-          private Node<T> cloneHelper(Node<T> p)
-          {
-             if(p == null)
-                return null;
-             else
-                return new Node<T>(p.data, cloneHelper(p.left), cloneHelper(p.right));
-          }
+The followings are the BST insert, search, delete, and clone functions.
 
+1. BST insert function
+
+<Tabs>
+<TabItem value="java" label="Java">
+
+```c
+public void insert(T data)
+{
+  root = insert(root, data);
+}
+private Node<T> insert(Node<T> p, T toInsert)
+{
+  if (p == null)
+     return new Node<T>(toInsert);
+
+  if (compare(toInsert, p.data) == 0)
+    return p;
+
+  if (compare(toInsert, p.data) < 0)
+     p.left = insert(p.left, toInsert);
+  else
+     p.right = insert(p.right, toInsert);
+
+  return p;
 }
 ```
+
+</TabItem>
+<TabItem value="js" label="TypeScript">
+
+```js
+function insert(val: number, node?: Tnode<number>): Tnode<number> {
+    if (node == null) {
+        return new Tnode(val)
+    }
+    if (val < node.val) {
+        node.left = insert(val, node.left);
+    } else if (val > node.val) {
+        node.right = insert(val, node.right);
+    }
+    return node;
+}
+```
+
+</TabItem>
+</Tabs>
+
+2. BST search function
+
+
+<Tabs>
+<TabItem value="java" label="Java">
+
+```c
+public boolean search(T toSearch)
+{
+  return search(root, toSearch);
+}
+private boolean search(Node<T> p, T toSearch)
+{
+  if (p == null)
+     return false;
+  else
+  if (compare(toSearch, p.data) == 0)
+    return true;
+  else
+  if (compare(toSearch, p.data) < 0)
+     return search(p.left, toSearch);
+  else
+     return search(p.right, toSearch);
+}
+```
+
+</TabItem>
+<TabItem value="js" label="TypeScript">
+
+```js
+function search(val: number, node?: Tnode<number>): boolean {
+    if (node == null) {
+        return false;
+    }
+
+    if (val == node.val) {
+        return true;
+    } else if (val < node.val) {
+        return search(val, node.left)
+    } else {
+        return search (val, node.right)
+    }
+}
+```
+
+</TabItem>
+</Tabs>
+
+3. BST delete function
+
+<Tabs>
+<TabItem value="java" label="Java">
+
+```c
+public void delete(T toDelete)
+{
+  root = delete(root, toDelete);
+}
+private Node<T> delete(Node<T> p, T toDelete)
+{
+  if (p == null)  throw new RuntimeException("cannot delete.");
+  else
+  if (compare(toDelete, p.data) < 0)
+    p.left = delete (p.left, toDelete);
+  else if (compare(toDelete, p.data)  > 0)
+    p.right = delete (p.right, toDelete);
+  else
+  {
+     if (p.left == null) return p.right;
+     else if (p.right == null) return p.left;
+     else
+     {
+     // get data from the rightmost node in the left subtree
+        p.data = retrieveData(p.left);
+     // delete the rightmost node in the left subtree
+        p.left =  delete(p.left, p.data) ;
+     }
+  }
+  return p;
+}
+```
+
+</TabItem>
+<TabItem value="js" label="TypeScript">
+
+```js
+function deleteNode(val: number, node?: Tnode<number>): Tnode<number> | undefined {
+    if (node == null) {
+        return undefined;
+    }
+
+    if (val == node.val) {
+        if (node.left == undefined && node.right == undefined) {
+            return undefined;
+        } else if (node.left == undefined) {
+            return node.right;
+        } else if (node.right == undefined) {
+            return node.left;
+        } else {
+            // the node has both left and right child nodes
+            // 1. Get the greatest value from the left side
+            let greatest = findGreatestValue(node.left);
+            // 2. Remove the greatest value from the left side
+            /**
+             * The left largest value can only 1. be a child node, 2. has only left child.
+             * Those two cases are covered by the if statements above.
+             * Make sure to assign the left child node.
+             */
+            node.left = deleteNode(greatest, node.left)
+            // 3. replace the current node with the greaest value from the left side
+            node.val = greatest
+            return node
+        }
+    } else if (val < node.val) {
+        node.left = deleteNode(val, node.left)
+    } else {
+        node.right = deleteNode(val, node.right)
+    }
+    return node
+}
+
+function findGreatestValue(node: Tnode<number>): number {
+    if (node.right == null) {
+        return node.val
+    } else {
+        return findGreatestValue(node.right);
+    }
+}
+```
+
+</TabItem>
+</Tabs>
+
+4. BST clone function
+
+<Tabs>
+<TabItem value="java" label="Java">
+
+```c
+public BST<T> clone()
+{
+ BST<T> twin = null;
+
+ if(comparator == null)
+    twin = new BST<T>();
+ else
+    twin = new BST<T>(comparator);
+
+ twin.root = cloneHelper(root);
+ return twin;
+}
+private Node<T> cloneHelper(Node<T> p)
+{
+ if(p == null)
+    return null;
+ else
+    return new Node<T>(p.data, cloneHelper(p.left), cloneHelper(p.right));
+}
+```
+
+</TabItem>
+<TabItem value="js" label="TypeScript">
+
+```js
+class BST<T> {
+    root?: Tnode<T>
+    constructor() {
+        this.root = undefined;
+    }
+}
+
+function clone(root?: Tnode<number>): Tnode<number> | undefined {
+    if (root == null) {
+        return undefined;
+    }
+    let left = clone(root.left)
+    let right = clone(root.right)
+
+    return new Tnode<number>(root.val, left, right)
+}
+```
+
+</TabItem>
+</Tabs>
 
 ## Preorder 
 ![Locale Dropdown](./img/preorder.png)
